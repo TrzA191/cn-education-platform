@@ -1,0 +1,25 @@
+import { Schema, model, Document } from 'mongoose'
+
+export interface IMultimediaContent extends Document {
+  title: string
+  description?: string
+  blob_storage_url?: string
+  cdn_url?: string
+  author_id: number
+  duration_seconds?: number
+  status: 'draft' | 'processing' | 'active' | 'inactive'
+  created_at: Date
+}
+
+const schema = new Schema<IMultimediaContent>({
+  title: { type: String, required: true },
+  description: { type: String },
+  blob_storage_url: { type: String },
+  cdn_url: { type: String },
+  author_id: { type: Number, required: true },
+  duration_seconds: { type: Number },
+  status: { type: String, enum: ['draft', 'processing', 'active', 'inactive'], default: 'draft' },
+  created_at: { type: Date, default: Date.now },
+})
+
+export const MultimediaContent = model<IMultimediaContent>('MultimediaContent', schema, 'multimedia_contents')
