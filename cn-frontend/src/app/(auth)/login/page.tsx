@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import api from '@../../../lib/api'
-import { useAuthStore } from '@../../../store/auth.store'
+import api from '@/lib/api'
+import { useAuthStore } from '@/store/auth.store'
 
 type Tab = 'login' | 'register'
 type Role = 'student' | 'teacher'
