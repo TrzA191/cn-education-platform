@@ -14,6 +14,15 @@ interface AuthState {
   loadFromStorage: () => void
 }
 
+function setCookie(name: string, value: string, days = 7) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString()
+  document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`
+}
+
+function deleteCookie(name: string) {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   token: null,
   user: null,
@@ -21,12 +30,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   setAuth: (token, user) => {
     localStorage.setItem('token', token)
     localStorage.setItem('user', JSON.stringify(user))
+    setCookie('token', token)
     set({ token, user })
   },
 
   logout: () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    deleteCookie('token')
     set({ token: null, user: null })
   },
 
