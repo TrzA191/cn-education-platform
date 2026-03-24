@@ -74,7 +74,7 @@ export default function LoginPage() {
           <p className="text-gray-500 text-sm mt-1">Traza tu camino, aprende a tu ritmo</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
             <button
               onClick={() => { setTab('login'); setError('') }}
