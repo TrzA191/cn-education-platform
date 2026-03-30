@@ -5,13 +5,13 @@ import { useAuthStore } from '@/store/auth.store'
 import api from '@/lib/api'
 
 interface Tag {
-  _id: number
+  _id: string
   name: string
   category: string
 }
 
 interface Content {
-  _id: number
+  _id: string
   title: string
   content_type: string
   duration_seconds: number | null
@@ -19,7 +19,7 @@ interface Content {
 }
 
 interface Path {
-  _id: number
+  _id: string
   title: string
   difficulty_level: string
   is_system_generated: boolean
@@ -60,40 +60,37 @@ function contentTypeIcon(type: string) {
 }
 
 export default function DashboardPage() {
-  const { user, loadFromStorage } = useAuthStore()
+  const { user } = useAuthStore()
   const [tags, setTags]         = useState<Tag[]>([])
   const [contents, setContents] = useState<Content[]>([])
   const [paths, setPaths]       = useState<Path[]>([])
   const [loading, setLoading]   = useState(true)
 
   useEffect(() => {
-    loadFromStorage()
+    const fetchData = async () => {
+      try {
+        const [tagsRes, contentsRes, pathsRes] = await Promise.all([
+          api.get('/api/tags'),
+          api.get('/api/contents'),
+          api.get('/api/paths'),
+        ])
+        setTags(tagsRes.data?.data || tagsRes.data || [])
+        setContents(contentsRes.data?.data || contentsRes.data || [])
+        setPaths(pathsRes.data?.data || pathsRes.data || [])
+      } catch (err) {
+        console.error('Error cargando datos:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
     fetchData()
   }, [])
-
-  const fetchData = async () => {
-    try {
-      const [tagsRes, contentsRes, pathsRes] = await Promise.all([
-        api.get('/api/tags'),
-        api.get('/api/contents'),
-        api.get('/api/paths'),
-      ])
-      setTags(tagsRes.data?.data || tagsRes.data || [])
-      setContents(contentsRes.data?.data || contentsRes.data || [])
-      setPaths(pathsRes.data?.data || pathsRes.data || [])
-    } catch (err) {
-      console.error('Error cargando datos:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Buenos días' : hour < 18 ? 'Buenas tardes' : 'Buenas noches'
 
   return (
     <div className="max-w-6xl mx-auto">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
           {greeting}{user?.email ? `, ${user.email.split('@')[0]}` : ''} 👋
@@ -101,7 +98,6 @@ export default function DashboardPage() {
         <p className="text-gray-500 mt-1">Aquí está tu resumen de aprendizaje</p>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <StatCard
           label="Contenidos disponibles"
@@ -141,7 +137,6 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Contenidos recientes */}
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">Contenidos recientes</h2>
@@ -168,7 +163,9 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    c.status === 'activo' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
+                    c.status === 'active' || c.status === 'activo'
+                      ? 'bg-green-50 text-green-700'
+                      : 'bg-gray-100 text-gray-500'
                   }`}>
                     {c.status}
                   </span>
@@ -178,7 +175,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Rutas */}
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">Rutas de aprendizaje</h2>
@@ -217,7 +213,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Tags */}
         <div className="bg-white rounded-2xl border border-gray-100 p-6 lg:col-span-2">
           <h2 className="font-semibold text-gray-900 mb-4">Temas disponibles</h2>
           {loading ? (

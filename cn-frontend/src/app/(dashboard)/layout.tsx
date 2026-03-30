@@ -1,13 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthStore } from '@/store/auth.store'
 
-// Función que devuelve los ítems de navegación según el rol
 const getNavItems = (role: string) => {
-  // Ítems base para todos los usuarios
   const base = [
     {
       href: '/dashboard',
@@ -53,7 +51,6 @@ const getNavItems = (role: string) => {
     },
   ]
 
-  // Ítems exclusivos para profesores
   const teacherItems = [
     {
       href: '/dashboard/subir',
@@ -67,7 +64,6 @@ const getNavItems = (role: string) => {
     },
   ]
 
-  // Ítems exclusivos para administradores
   const adminItems = [
     {
       href: '/dashboard/admin',
@@ -81,28 +77,26 @@ const getNavItems = (role: string) => {
         </svg>
       ),
     },
-    ...teacherItems, // Los admins también pueden subir contenido
+    ...teacherItems,
   ]
 
   if (role === 'admin') return [...base, ...adminItems]
   if (role === 'teacher') return [...base, ...teacherItems]
-  return base // student u otros roles solo ven los base
+  return base
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { user, token, logout, loadFromStorage } = useAuthStore()
+  const { user, token, logout } = useAuthStore()
+
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    loadFromStorage()
+    setMounted(true)
   }, [])
-
   useEffect(() => {
-    if (!token && typeof window !== 'undefined') {
-      const stored = localStorage.getItem('token')
-      if (!stored) router.push('/login')
-    }
+    if (!token) router.push('/login')
   }, [token])
 
   const handleLogout = () => {
@@ -110,14 +104,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push('/login')
   }
 
-  // Obtenemos los items según el rol del usuario (por defecto 'student' si no hay rol)
   const navItems = getNavItems(user?.role || 'student')
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-100 flex flex-col fixed h-full">
-        {/* Logo */}
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center">
@@ -133,7 +124,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
             const active = pathname === item.href
@@ -141,11 +131,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  active
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${active
                     ? 'bg-indigo-50 text-indigo-600'
                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
-                }`}
+                  }`}
               >
                 <span className={active ? 'text-indigo-600' : 'text-gray-400'}>
                   {item.icon}
@@ -156,25 +145,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        {/* User + logout */}
         <div className="p-4 border-t border-gray-100">
           <div className="flex items-center gap-3 mb-3">
-           <div className="w-9 h-9 bg-indigo-100 rounded-full flex items-center justify-center">
-            <span className="text-sm font-bold text-indigo-600">
+            <div className="w-9 h-9 bg-indigo-100 rounded-full flex items-center justify-center">
+              <span className="text-sm font-bold text-indigo-600">
                 {user?.email?.[0]?.toUpperCase() || '?'}
-            </span>
+              </span>
             </div>
             <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.email || 'Cargando...'}
-            </p>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${
-                user?.role === 'admin'   ? 'bg-red-50 text-red-600' :
-                user?.role === 'teacher' ? 'bg-blue-50 text-blue-600' :
-                'bg-green-50 text-green-600'
-            }`}>
-                {user?.role || '...'}
-            </span>
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {mounted ? (user?.email || '') : ''}
+              </p>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${user?.role === 'admin' ? 'bg-red-50 text-red-600' :
+                  user?.role === 'teacher' ? 'bg-blue-50 text-blue-600' :
+                    'bg-green-50 text-green-600'
+                }`}>
+                {mounted ? (user?.role || 'student') : ''}
+              </span>
+
             </div>
           </div>
           <button
@@ -190,7 +178,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      {/* Contenido */}
       <main className="flex-1 ml-64 p-8">
         {children}
       </main>
