@@ -95,14 +95,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     setMounted(true)
   }, [])
+
   useEffect(() => {
-    if (!token) router.push('/login')
-  }, [token])
+    if (mounted && !token) {
+      router.push('/login')
+    }
+  }, [mounted, token])
 
   const handleLogout = () => {
     logout()
     router.push('/login')
   }
+
+  // Mientras no está hidratado, no renderiza nada (evita el flash y el redirect falso)
+  if (!mounted) return null
 
   const navItems = getNavItems(user?.role || 'student')
 
@@ -132,8 +138,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.href}
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${active
-                    ? 'bg-indigo-50 text-indigo-600'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-indigo-50 text-indigo-600'
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
                   }`}
               >
                 <span className={active ? 'text-indigo-600' : 'text-gray-400'}>
@@ -157,8 +163,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {mounted ? (user?.email || '') : ''}
               </p>
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${user?.role === 'admin' ? 'bg-red-50 text-red-600' :
-                  user?.role === 'teacher' ? 'bg-blue-50 text-blue-600' :
-                    'bg-green-50 text-green-600'
+                user?.role === 'teacher' ? 'bg-blue-50 text-blue-600' :
+                  'bg-green-50 text-green-600'
                 }`}>
                 {mounted ? (user?.role || 'student') : ''}
               </span>

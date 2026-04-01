@@ -46,13 +46,13 @@ SELECT * FROM users WHERE email=@email
   const user = result.recordset[0];
 
   if (!user) {
-    return res.status(400).json({ message: "User not found" });
+    return res.status(400).json({ error: "Usuario no encontrado" });
   }
 
   const valid = await bcrypt.compare(password, user.password_hash);
 
   if (!valid) {
-    return res.status(401).json({ message: "Invalid credentials" });
+    return res.status(401).json({ error: "Contraseña incorrecta" });
   }
 
   const secret = process.env.JWT_SECRET as string;
@@ -68,7 +68,14 @@ SELECT * FROM users WHERE email=@email
     options
   );
 
-  res.json({ token });
+  res.json({
+    token,
+    user: {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    }
+  });
 
 }
 
