@@ -1,35 +1,37 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 
 interface CaptchaGateProps {
   onVerified: () => void  // callback cuando el usuario pasa el captcha
 }
 
 function generateChallenge() {
-  const a = Math.floor(Math.random() * 9) + 1
-  const b = Math.floor(Math.random() * 9) + 1
-  const ops = ['+', '-', 'x'] as const
+  let a = Math.floor(Math.random() * 9) + 1
+  let b = Math.floor(Math.random() * 9) + 1
+
+  // Asegurarnos de que no salgan restas negativas (ej: 2 - 8)
+  if (a < b) {
+    const temp = a;
+    a = b;
+    b = temp;
+  }
+
+  // Quitamos la 'x' del arreglo
+  const ops = ['+', '-'] as const
   const op = ops[Math.floor(Math.random() * ops.length)]
-  const answer = op === '+' ? a + b : op === '-' ? a - b : a * b
+  
+  // Simplificamos la lógica de la respuesta
+  const answer = op === '+' ? a + b : a - b
+  
   return { question: `${a} ${op} ${b}`, answer }
 }
 
 export default function CaptchaGate({ onVerified }: CaptchaGateProps) {
-  // 1. Iniciamos con un estado por defecto que sea igual en Servidor y Cliente
-  const [challenge, setChallenge] = useState({ question: '...', answer: 0 })
+  const [challenge, setChallenge] = useState(generateChallenge)
   const [input, setInput] = useState('')
   const [error, setError] = useState(false)
   const [shake, setShake] = useState(false)
-  
-  // 2. Estado para saber si ya estamos en el navegador
-  const [mounted, setMounted] = useState(false)
-
-  // 3. Generamos el reto matemático SÓLO cuando ya estamos en el cliente
-  useEffect(() => {
-    setChallenge(generateChallenge())
-    setMounted(true)
-  }, [])
 
   const refresh = useCallback(() => {
     setChallenge(generateChallenge())
@@ -52,9 +54,6 @@ export default function CaptchaGate({ onVerified }: CaptchaGateProps) {
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleVerify()
   }
-
-  // 4. Si aún no está montado, devolvemos null para evitar el choque de hidratación
-  if (!mounted) return null
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

@@ -10,13 +10,13 @@ export const proxy = (baseUrl: string) => {
         method: req.method as Method,
         url,
         headers: {
-          // Solo pasar estos headers, ignorar el resto para evitar conflictos
-          'content-type': req.headers['content-type'],
-          'authorization': req.headers['authorization'],
-          'accept': req.headers['accept'],
+          'content-type':   req.headers['content-type'],
+          'authorization':  req.headers['authorization'],
+          'accept':         req.headers['accept'],
+          'x-internal-key': process.env.INTERNAL_API_KEY, // ← agrega esto
         },
-        data: req.body,
-        params: req.query,
+        data:           req.body,
+        params:         req.query,
         validateStatus: () => true,
       }
 
