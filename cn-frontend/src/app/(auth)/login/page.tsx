@@ -4,14 +4,24 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
+import CaptchaGate from '@/components/CaptchaGate'
+import { useCaptchaRequired } from '@/hooks/useCaptchaRequired'
 
 type Tab = 'login' | 'register'
 type Role = 'student' | 'teacher'
 
 export default function LoginPage() {
+  // ==========================================
+  // 1. ZONA DE HOOKS (PROHIBIDO PONER 'IF' O 'RETURN' ARRIBA DE ESTO)
+  // ==========================================
   const router = useRouter()
   const { setAuth } = useAuthStore()
 
+  // Hooks del Captcha
+  const { required: captchaRequired } = useCaptchaRequired()
+  const [captchaVerified, setCaptchaVerified] = useState(false)
+
+  // Hooks del Formulario
   const [tab, setTab] = useState<Tab>('login')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -24,6 +34,9 @@ export default function LoginPage() {
     role: 'student' as Role,
   })
 
+  // ==========================================
+  // 2. MANEJADORES DE EVENTOS
+  // ==========================================
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -60,6 +73,17 @@ export default function LoginPage() {
     }
   }
 
+  // ==========================================
+  // 3. RENDERIZADO CONDICIONAL (SIEMPRE AL FINAL)
+  // ==========================================
+  
+  // La "Compuerta": Si requiere captcha y no está verificado, bloqueamos la vista.
+  // Como esto ya está debajo de todos los hooks, React es feliz.
+  if (captchaRequired && !captchaVerified) {
+    return <CaptchaGate onVerified={() => setCaptchaVerified(true)} />
+  }
+
+  // El Formulario Normal
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
