@@ -122,45 +122,55 @@ export async function login(req: Request, res: Response) {
     const valid = await bcrypt.compare(password, user.password_hash)
 
     if (!valid) {
-      // Registrar intento fallido
-      await recordFailedAttempt({ email, ipAddress, userAgent })
-      await updateUserOnLogin({ userId: user.id, success: false })
+  await recordFailedAttempt({ email, ipAddress, userAgent })
+  await updateUserOnLogin({ userId: user.id, success: false })
 
-      const recentFails = await countRecentFailedAttempts(email)
+  const recentFails = await countRecentFailedAttempts(email)
+  const captchaVerified = req.headers['x-captcha-verified'] === 'true'
 
-      await logSecurityEvent({
-        userId     : user.id,
-        eventType  : 'login_failed',
-        description: `Contraseña incorrecta para ${email}. Intento ${recentFails} de ${MAX_FAILED_ATTEMPTS}.`,
-        ipAddress,
-        userAgent,
-        severity   : recentFails >= MAX_FAILED_ATTEMPTS ? 'alto' : 'medio',
-      })
+  // Si llegó al umbral del captcha pero NO lo ha verificado → pedir captcha sin bloquear
+  if (recentFails >= 3 && !captchaVerified) {
+    await logSecurityEvent({
+      userId     : user.id,
+      eventType  : 'login_failed',
+      description: `${recentFails} intentos fallidos para ${email}. Captcha requerido.`,
+      ipAddress, userAgent, severity: 'medio',
+    })
+    return res.status(429).json({
+      error          : 'Demasiados intentos fallidos.',
+      requiresCaptcha: true,
+    })
+  }
 
-      // 5. Bloquear si alcanzó el límite
-      if (recentFails >= MAX_FAILED_ATTEMPTS) {
-        await blockAccount({ userId: user.id, reason: 'intentos_fallidos' })
-        await logSecurityEvent({
-          userId     : user.id,
-          eventType  : 'account_blocked',
-          description: `Cuenta bloqueada automáticamente por ${MAX_FAILED_ATTEMPTS} intentos fallidos: ${email}`,
-          ipAddress,
-          userAgent,
-          severity   : 'critico',
-          status     : 'en_proceso',
-        })
-        return res.status(403).json({
-          error  : 'Cuenta bloqueada por múltiples intentos fallidos. Intenta en 30 minutos.',
-          blocked: true,
-        })
-      }
+  // Si ya verificó el captcha pero sigue fallando → ahí sí bloquear
+  if (recentFails >= 5 && captchaVerified) {
+    await blockAccount({ userId: user.id, reason: 'intentos_fallidos' })
+    await logSecurityEvent({
+      userId     : user.id,
+      eventType  : 'account_blocked',
+      description: `Cuenta bloqueada tras ${recentFails} intentos con captcha verificado: ${email}`,
+      ipAddress, userAgent, severity: 'critico', status: 'en_proceso',
+    })
+    return res.status(403).json({
+      error  : 'Cuenta bloqueada por múltiples intentos fallidos. Intenta en 30 minutos.',
+      blocked: true,
+    })
+  }
 
-      return res.status(401).json({
-        error       : 'Credenciales incorrectas',
-        failedAttempts: recentFails,
-        maxAttempts   : MAX_FAILED_ATTEMPTS,
-      })
-    }
+  await logSecurityEvent({
+    userId     : user.id,
+    eventType  : 'login_failed',
+    description: `Contraseña incorrecta para ${email}. Intento ${recentFails} de 3.`,
+    ipAddress, userAgent,
+    severity   : recentFails >= 3 ? 'alto' : 'medio',
+  })
+
+  return res.status(401).json({
+    error         : 'Credenciales incorrectas',
+    failedAttempts: recentFails,
+    maxAttempts   : 3,
+  })
+}
 
     // 6. Login exitoso — generar token
     const secret  = process.env.JWT_SECRET as string

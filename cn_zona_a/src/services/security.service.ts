@@ -8,7 +8,7 @@
 import { pool } from '../lib/db'
 
 // ─── Constantes de política de seguridad ──────────────────────────────────────
-const MAX_FAILED_ATTEMPTS = 3       // intentos antes de bloqueo
+const MAX_FAILED_ATTEMPTS = 5      // intentos antes de bloqueo
 const BLOCK_MINUTES       = 30      // duración del bloqueo automático
 const CAPTCHA_THRESHOLD   = 3       // intentos antes de requerir captcha
 

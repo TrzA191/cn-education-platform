@@ -7,47 +7,68 @@ import { useAuthStore } from '@/store/auth.store'
 import CaptchaGate from '@/components/CaptchaGate'
 import { useCaptchaRequired } from '@/hooks/useCaptchaRequired'
 
-type Tab = 'login' | 'register'
+type Tab  = 'login' | 'register'
 type Role = 'student' | 'teacher'
 
 export default function LoginPage() {
-  // ==========================================
-  // 1. ZONA DE HOOKS (PROHIBIDO PONER 'IF' O 'RETURN' ARRIBA DE ESTO)
-  // ==========================================
-  const router = useRouter()
+  const router      = useRouter()
   const { setAuth } = useAuthStore()
 
-  // Hooks del Captcha
-  const { required: captchaRequired } = useCaptchaRequired()
-  const [captchaVerified, setCaptchaVerified] = useState(false)
-
-  // Hooks del Formulario
-  const [tab, setTab] = useState<Tab>('login')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [tab,              setTab]              = useState<Tab>('login')
+  const [loading,          setLoading]          = useState(false)
+  const [error,            setError]            = useState('')
+  const [captchaVerified,  setCaptchaVerified]  = useState(false)
+  const [forceShowCaptcha, setForceShowCaptcha] = useState(false)
 
   const [loginData, setLoginData] = useState({ email: '', password: '' })
   const [registerData, setRegisterData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    role: 'student' as Role,
+    username: '', email: '', password: '', role: 'student' as Role,
   })
 
-  // ==========================================
-  // 2. MANEJADORES DE EVENTOS
-  // ==========================================
+  const { required: captchaRequired, loading: captchaLoading, recheck } =
+    useCaptchaRequired(tab === 'login' ? loginData.email : undefined)
+
+  // Mostrar captcha si la DB lo indica O si el backend lo forzó con requiresCaptcha
+  if (tab === 'login' && (captchaRequired || forceShowCaptcha) && !captchaVerified && !captchaLoading) {
+    return (
+      <CaptchaGate onVerified={() => {
+        setCaptchaVerified(true)
+        setForceShowCaptcha(false)
+      }} />
+    )
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      const res = await api.post('/api/auth/login', loginData)
+      const headers: Record<string, string> = {}
+      if (captchaVerified) headers['x-captcha-verified'] = 'true'
+
+      const res = await api.post('/api/auth/login', loginData, { headers })
       const { token, user } = res.data
       setAuth(token, user)
       router.push('/dashboard')
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al iniciar sesión')
+      const data = err.response?.data
+
+      if (data?.requiresCaptcha) {
+        // Backend indica que se requiere captcha — mostrar CaptchaGate
+        setCaptchaVerified(false)
+        setForceShowCaptcha(true)
+        setError('')
+        return
+      }
+
+      if (data?.blocked) {
+        setError(data?.error || 'Cuenta bloqueada. Intenta más tarde.')
+        return
+      }
+
+      setError(data?.error || 'Error al iniciar sesión')
+      setCaptchaVerified(false)
+      recheck()
     } finally {
       setLoading(false)
     }
@@ -60,8 +81,7 @@ export default function LoginPage() {
     try {
       await api.post('/api/auth/register', registerData)
       const res = await api.post('/api/auth/login', {
-        email: registerData.email,
-        password: registerData.password,
+        email: registerData.email, password: registerData.password,
       })
       const { token, user } = res.data
       setAuth(token, user)
@@ -73,17 +93,6 @@ export default function LoginPage() {
     }
   }
 
-  // ==========================================
-  // 3. RENDERIZADO CONDICIONAL (SIEMPRE AL FINAL)
-  // ==========================================
-  
-  // La "Compuerta": Si requiere captcha y no está verificado, bloqueamos la vista.
-  // Como esto ya está debajo de todos los hooks, React es feliz.
-  if (captchaRequired && !captchaVerified) {
-    return <CaptchaGate onVerified={() => setCaptchaVerified(true)} />
-  }
-
-  // El Formulario Normal
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -101,25 +110,21 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
             <button
-              onClick={() => { setTab('login'); setError('') }}
+              onClick={() => { setTab('login'); setError(''); setCaptchaVerified(false); setForceShowCaptcha(false) }}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
                 tab === 'login' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
-            >
-              Iniciar sesión
-            </button>
+            >Iniciar sesión</button>
             <button
               onClick={() => { setTab('register'); setError('') }}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
                 tab === 'register' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
-            >
-              Registrarse
-            </button>
+            >Registrarse</button>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg">
+            <div className="mb-4 p3 bg-red-50 border border-red-100 rounded-lg">
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
@@ -146,9 +151,12 @@ export default function LoginPage() {
                   placeholder="••••••••"
                 />
               </div>
+              {captchaLoading && loginData.email && (
+                <p className="text-xs text-gray-400 text-center">Verificando seguridad...</p>
+              )}
               <button
-                type="submit" disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-2.5 rounded-xl text-sm transition-colors"
+                type="submit" disabled={loading || captchaLoading}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-medium py-2.5 rounded-xl text-sm transition-colors"
               >
                 {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
               </button>
