@@ -10,6 +10,16 @@ import { useCaptchaRequired } from '@/hooks/useCaptchaRequired'
 type Tab  = 'login' | 'register'
 type Role = 'student' | 'teacher'
 
+// Dominios de correo permitidos
+const ALLOWED_EMAIL_REGEX = /^[a-zA-Z0-9._%+\-]+@(gmail\.com|hotmail\.com|outlook\.com|yahoo\.com|icloud\.com|unach\.mx|uvc\.edu\.mx|live\.com|me\.com)$/i
+
+// Validadores de contraseña
+const passwordRules = [
+  { label: 'Mínimo 8 caracteres', test: (p: string) => p.length >= 8 },
+  { label: 'Al menos un número',  test: (p: string) => /\d/.test(p) },
+  { label: 'Al menos una letra',  test: (p: string) => /[a-zA-Z]/.test(p) },
+]
+
 export default function LoginPage() {
   const router      = useRouter()
   const { setAuth } = useAuthStore()
@@ -22,14 +32,16 @@ export default function LoginPage() {
 
   const [loginData, setLoginData] = useState({ email: '', password: '' })
   const [registerData, setRegisterData] = useState({
-    username: '', email: '', password: '', role: 'student' as Role,
+    username: '', email: '', password: '', confirmPassword: '', role: 'student' as Role,
   })
+
+  // Errores de validación del formulario de registro
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const { required: captchaRequired, loading: captchaLoading, recheck } =
     useCaptchaRequired(tab === 'login' ? loginData.email : undefined)
 
-  // Mostrar captcha si la DB lo indica O si el backend lo forzó con requiresCaptcha
-  if (tab === 'login' && (captchaRequired || forceShowCaptcha) && !captchaVerified && !captchaLoading) {
+  if (tab === 'login' && (captchaRequired || forceShowCaptcha) && !captchaVerified) {
     return (
       <CaptchaGate onVerified={() => {
         setCaptchaVerified(true)
@@ -38,6 +50,28 @@ export default function LoginPage() {
     )
   }
 
+  // ── Validación del registro ──────────────────────────────────────────────────
+  const validateRegister = (): boolean => {
+    const errors: Record<string, string> = {}
+
+    if (!ALLOWED_EMAIL_REGEX.test(registerData.email)) {
+      errors.email = 'Usa un correo válido: @gmail.com, @hotmail.com, @unach.mx, etc.'
+    }
+
+    const failedRules = passwordRules.filter(r => !r.test(registerData.password))
+    if (failedRules.length > 0) {
+      errors.password = 'La contraseña no cumple los requisitos.'
+    }
+
+    if (registerData.password !== registerData.confirmPassword) {
+      errors.confirmPassword = 'Las contraseñas no coinciden.'
+    }
+
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -52,20 +86,16 @@ export default function LoginPage() {
       router.push('/dashboard')
     } catch (err: any) {
       const data = err.response?.data
-
       if (data?.requiresCaptcha) {
-        // Backend indica que se requiere captcha — mostrar CaptchaGate
         setCaptchaVerified(false)
         setForceShowCaptcha(true)
         setError('')
         return
       }
-
       if (data?.blocked) {
         setError(data?.error || 'Cuenta bloqueada. Intenta más tarde.')
         return
       }
-
       setError(data?.error || 'Error al iniciar sesión')
       setCaptchaVerified(false)
       recheck()
@@ -77,9 +107,16 @@ export default function LoginPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    if (!validateRegister()) return
+
     setLoading(true)
     try {
-      await api.post('/api/auth/register', registerData)
+      await api.post('/api/auth/register', {
+        username: registerData.username,
+        email   : registerData.email,
+        password: registerData.password,
+        role    : registerData.role,
+      })
       const res = await api.post('/api/auth/login', {
         email: registerData.email, password: registerData.password,
       })
@@ -92,6 +129,8 @@ export default function LoginPage() {
       setLoading(false)
     }
   }
+
+  const pwd = registerData.password
 
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -116,7 +155,7 @@ export default function LoginPage() {
               }`}
             >Iniciar sesión</button>
             <button
-              onClick={() => { setTab('register'); setError('') }}
+              onClick={() => { setTab('register'); setError(''); setFieldErrors({}) }}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
                 tab === 'register' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
@@ -124,11 +163,12 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="mb-4 p3 bg-red-50 border border-red-100 rounded-lg">
+            <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg">
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
 
+          {/* ── FORMULARIO LOGIN ── */}
           {tab === 'login' && (
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
@@ -151,11 +191,8 @@ export default function LoginPage() {
                   placeholder="••••••••"
                 />
               </div>
-              {captchaLoading && loginData.email && (
-                <p className="text-xs text-gray-400 text-center">Verificando seguridad...</p>
-              )}
               <button
-                type="submit" disabled={loading || captchaLoading}
+                type="submit" disabled={loading}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-medium py-2.5 rounded-xl text-sm transition-colors"
               >
                 {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
@@ -163,8 +200,11 @@ export default function LoginPage() {
             </form>
           )}
 
+          {/* ── FORMULARIO REGISTRO ── */}
           {tab === 'register' && (
             <form onSubmit={handleRegister} className="space-y-4">
+
+              {/* Username */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de usuario</label>
                 <input
@@ -175,26 +215,104 @@ export default function LoginPage() {
                   placeholder="usuario123"
                 />
               </div>
+
+              {/* Email con validación de dominio */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
                 <input
                   type="email" required
                   value={registerData.email}
-                  onChange={e => setRegisterData({ ...registerData, email: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                  placeholder="tu@correo.com"
+                  onChange={e => {
+                    setRegisterData({ ...registerData, email: e.target.value })
+                    setFieldErrors(prev => ({ ...prev, email: '' }))
+                  }}
+                  className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:border-transparent transition ${
+                    fieldErrors.email
+                      ? 'border-red-300 focus:ring-red-400 bg-red-50'
+                      : 'border-gray-200 focus:ring-indigo-500'
+                  }`}
+                  placeholder="tu@gmail.com / tu@unach.mx"
                 />
+                {fieldErrors.email && (
+                  <p className="text-xs text-red-500 mt-1">{fieldErrors.email}</p>
+                )}
               </div>
+
+              {/* Contraseña con indicadores */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
                 <input
-                  type="password" required minLength={8}
+                  type="password" required
                   value={registerData.password}
-                  onChange={e => setRegisterData({ ...registerData, password: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                  onChange={e => {
+                    setRegisterData({ ...registerData, password: e.target.value })
+                    setFieldErrors(prev => ({ ...prev, password: '' }))
+                  }}
+                  className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:border-transparent transition ${
+                    fieldErrors.password
+                      ? 'border-red-300 focus:ring-red-400 bg-red-50'
+                      : 'border-gray-200 focus:ring-indigo-500'
+                  }`}
                   placeholder="Mínimo 8 caracteres"
                 />
+                {/* Indicadores de requisitos */}
+                {pwd.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {passwordRules.map(rule => (
+                      <div key={rule.label} className="flex items-center gap-2">
+                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                          rule.test(pwd) ? 'bg-green-500' : 'bg-gray-200'
+                        }`}>
+                          {rule.test(pwd) && (
+                            <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className={`text-xs transition-colors ${
+                          rule.test(pwd) ? 'text-green-600' : 'text-gray-400'
+                        }`}>
+                          {rule.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* Confirmar contraseña */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar contraseña</label>
+                <input
+                  type="password" required
+                  value={registerData.confirmPassword}
+                  onChange={e => {
+                    setRegisterData({ ...registerData, confirmPassword: e.target.value })
+                    setFieldErrors(prev => ({ ...prev, confirmPassword: '' }))
+                  }}
+                  className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:border-transparent transition ${
+                    fieldErrors.confirmPassword
+                      ? 'border-red-300 focus:ring-red-400 bg-red-50'
+                      : registerData.confirmPassword.length > 0 && registerData.confirmPassword === pwd
+                        ? 'border-green-400 focus:ring-green-400'
+                        : 'border-gray-200 focus:ring-indigo-500'
+                  }`}
+                  placeholder="Repite tu contraseña"
+                />
+                {/* Indicador de coincidencia en tiempo real */}
+                {registerData.confirmPassword.length > 0 && (
+                  <p className={`text-xs mt-1 ${
+                    registerData.confirmPassword === pwd ? 'text-green-600' : 'text-red-500'
+                  }`}>
+                    {registerData.confirmPassword === pwd ? '✓ Las contraseñas coinciden' : 'Las contraseñas no coinciden'}
+                  </p>
+                )}
+                {fieldErrors.confirmPassword && (
+                  <p className="text-xs text-red-500 mt-1">{fieldErrors.confirmPassword}</p>
+                )}
+              </div>
+
+              {/* Rol */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
                 <select
@@ -206,6 +324,7 @@ export default function LoginPage() {
                   <option value="teacher">Profesor</option>
                 </select>
               </div>
+
               <button
                 type="submit" disabled={loading}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-2.5 rounded-xl text-sm transition-colors"
