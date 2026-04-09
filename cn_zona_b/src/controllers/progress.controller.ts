@@ -1,6 +1,8 @@
 import { Request, Response } from 'express'
 import { UserProgress } from '../models/UserProgress'
 import { MultimediaContent } from '../models/MultimediaContent'
+import { LearningPath } from '../models/LearningPath'
+import { UserEnrollment } from '../models/UserEnrollment'
 
 export const saveProgress = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -42,6 +44,43 @@ export const getUserProgress = async (req: Request, res: Response): Promise<void
     res.json(progress)
   } catch (error) {
     console.error('[getUserProgress]', error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+}
+
+
+export const enrollPath = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { path_id } = req.body
+    const user_id = req.user!.userId
+
+    const path = await LearningPath.findById(path_id)
+    if (!path) {
+      res.status(404).json({ error: 'Ruta no encontrada' })
+      return
+    }
+
+    const existing = await UserEnrollment.findOne({ user_id, path_id })
+    if (existing) {
+      res.status(409).json({ error: 'Ya estás inscrito en esta ruta', enrolled: true })
+      return
+    }
+
+    const enrollment = await UserEnrollment.create({ user_id, path_id })
+    res.status(201).json({ message: 'Inscripción exitosa', enrollment })
+  } catch (error) {
+    console.error('[enrollPath]', error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+}
+
+export const getEnrollments = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user_id = req.user!.userId
+    const enrollments = await UserEnrollment.find({ user_id }).populate('path_id')
+    res.json(enrollments)
+  } catch (error) {
+    console.error('[getEnrollments]', error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 }

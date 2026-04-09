@@ -56,4 +56,7 @@ router.get('/comments/:contentId', proxy(ZONA_B))
 router.post('/ratings', authenticate, proxy(ZONA_B))
 router.get('/ratings/:contentId', proxy(ZONA_B))
 
+router.post('/progress/enroll',      authenticate, proxy(ZONA_B))
+router.get('/progress/enrollments',  authenticate, proxy(ZONA_B))
+
 export default router

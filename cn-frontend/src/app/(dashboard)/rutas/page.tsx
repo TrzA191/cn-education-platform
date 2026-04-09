@@ -5,7 +5,7 @@ import api from '@/lib/api'
 import Link from 'next/link'
 
 interface Path {
-  _id: number
+  _id: string
   title: string
   description: string
   difficulty_level: string
@@ -15,15 +15,15 @@ interface Path {
 
 function difficultyColor(level: string) {
   const map: Record<string, string> = {
-    basico:     'bg-green-50 text-green-700',
+    basico    : 'bg-green-50 text-green-700',
     intermedio: 'bg-yellow-50 text-yellow-700',
-    avanzado:   'bg-red-50 text-red-700',
+    avanzado  : 'bg-red-50 text-red-700',
   }
   return map[level] || 'bg-gray-100 text-gray-600'
 }
 
 export default function RutasPage() {
-  const [paths, setPaths] = useState<Path[]>([])
+  const [paths, setPaths]   = useState<Path[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -42,7 +42,9 @@ export default function RutasPage() {
 
       {loading ? (
         <div className="space-y-4">
-          {[1,2,3].map(i => <div key={i} className="h-32 bg-white rounded-2xl border border-gray-100 animate-pulse" />)}
+          {[1,2,3].map(i => (
+            <div key={i} className="h-32 bg-white rounded-2xl border border-gray-100 animate-pulse" />
+          ))}
         </div>
       ) : paths.length === 0 ? (
         <div className="text-center py-20">
@@ -51,9 +53,9 @@ export default function RutasPage() {
       ) : (
         <div className="space-y-4">
           {paths.map(p => (
-            <Link key={p._id} href={`/dashboard/rutas/${p._id}`} className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md transition-shadow">
+            <div key={p._id} className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-semibold text-gray-900">{p.title}</h3>
                     {p.is_system_generated && (
@@ -62,21 +64,28 @@ export default function RutasPage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500 mb-3">{p.description}</p>
+                  <p className="text-sm text-gray-500 mb-3 line-clamp-2">{p.description}</p>
                   <div className="flex items-center gap-2">
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${difficultyColor(p.difficulty_level)}`}>
                       {p.difficulty_level}
                     </span>
                     <span className="text-xs text-gray-400">
-                      {new Date(p.created_at).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      {new Date(p.created_at).toLocaleDateString('es-MX', {
+                        year: 'numeric', month: 'long', day: 'numeric'
+                      })}
                     </span>
                   </div>
                 </div>
-                <button className="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors">
-                  Inscribirse
-                </button>
+
+                {/* Ver detalle — aquí se puede inscribir */}
+                <Link
+                  href={`/rutas/${p._id}`}
+                  className="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors"
+                >
+                  Ver ruta →
+                </Link>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}

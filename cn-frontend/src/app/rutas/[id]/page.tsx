@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import api from '@/lib/api'
 import Link from 'next/link'
@@ -28,23 +28,25 @@ interface PathContent {
 
 function difficultyColor(level: string) {
   const map: Record<string, string> = {
-    basico:     'bg-green-50 text-green-700',
+    basico: 'bg-green-50 text-green-700',
     intermedio: 'bg-yellow-50 text-yellow-700',
-    avanzado:   'bg-red-50 text-red-700',
+    avanzado: 'bg-red-50 text-red-700',
   }
   return map[level] || 'bg-gray-100 text-gray-600'
 }
 
-export default function RutaDetallePage() {
-  const { id } = useParams()
+
+
+  export default function RutaDetallePage({ params }: { params: { id: string } }) {
+  const { id } = params
   const router = useRouter()
   const { user } = useAuthStore()
 
-  const [path, setPath]         = useState<PathDetail | null>(null)
+  const [path, setPath] = useState<PathDetail | null>(null)
   const [contents, setContents] = useState<PathContent[]>([])
-  const [loading, setLoading]   = useState(true)
+  const [loading, setLoading] = useState(true)
   const [enrolling, setEnrolling] = useState(false)
-  const [enrolled, setEnrolled]   = useState(false)
+  const [enrolled, setEnrolled] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -54,8 +56,19 @@ export default function RutaDetallePage() {
     try {
       const res = await api.get(`/api/paths/${id}`)
       const data = res.data?.data || res.data
-      setPath(data)
-      setContents(data?.contents || [])
+      setPath(data.path || data)
+      setContents(data.contents || [])
+
+      try {
+        const enrollRes = await api.get('/api/progress/enrollments')
+        const enrollments = enrollRes.data || []
+        const isEnrolled = enrollments.some(
+          (e: any) => e.path_id?._id === id || e.path_id === id
+        )
+        setEnrolled(isEnrolled)
+      } catch {
+        // si falla no bloquea la página
+      }
     } catch (err) {
       console.error(err)
     } finally {

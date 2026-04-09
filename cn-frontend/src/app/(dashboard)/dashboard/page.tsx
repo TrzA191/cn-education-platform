@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/auth.store'
 import api from '@/lib/api'
+import Link from 'next/link'
 
 interface Tag {
   _id: string
@@ -46,25 +47,25 @@ function StatCard({ label, value, icon, color }: {
 
 function difficultyBadge(level: string) {
   const map: Record<string, string> = {
-    basico:     'bg-green-50 text-green-700',
+    basico: 'bg-green-50 text-green-700',
     intermedio: 'bg-yellow-50 text-yellow-700',
-    avanzado:   'bg-red-50 text-red-700',
+    avanzado: 'bg-red-50 text-red-700',
   }
   return map[level] || 'bg-gray-100 text-gray-600'
 }
 
 function contentTypeIcon(type: string) {
   if (type === 'video') return '🎬'
-  if (type === 'pdf')   return '📄'
+  if (type === 'pdf') return '📄'
   return '📝'
 }
 
 export default function DashboardPage() {
   const { user } = useAuthStore()
-  const [tags, setTags]         = useState<Tag[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
   const [contents, setContents] = useState<Content[]>([])
-  const [paths, setPaths]       = useState<Path[]>([])
-  const [loading, setLoading]   = useState(true)
+  const [paths, setPaths] = useState<Path[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -146,15 +147,14 @@ export default function DashboardPage() {
           </div>
           {loading ? (
             <div className="space-y-3">
-              {[1,2,3].map(i => <div key={i} className="h-14 bg-gray-50 rounded-xl animate-pulse" />)}
+              {[1, 2, 3].map(i => <div key={i} className="h-14 bg-gray-50 rounded-xl animate-pulse" />)}
             </div>
           ) : contents.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-8">No hay contenidos aún</p>
           ) : (
             <div className="space-y-2">
               {contents.slice(0, 5).map((c) => (
-                <div key={c._id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors">
-                  <span className="text-xl">{contentTypeIcon(c.content_type)}</span>
+                <Link key={c._id} href={`/contenidos/${c._id}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{c.title}</p>
                     <p className="text-xs text-gray-400 capitalize">
@@ -162,14 +162,13 @@ export default function DashboardPage() {
                       {c.duration_seconds ? ` · ${Math.round(c.duration_seconds / 60)} min` : ''}
                     </p>
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    c.status === 'active' || c.status === 'activo'
-                      ? 'bg-green-50 text-green-700'
-                      : 'bg-gray-100 text-gray-500'
-                  }`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.status === 'active' || c.status === 'activo'
+                    ? 'bg-green-50 text-green-700'
+                    : 'bg-gray-100 text-gray-500'
+                    }`}>
                     {c.status}
                   </span>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -184,14 +183,14 @@ export default function DashboardPage() {
           </div>
           {loading ? (
             <div className="space-y-3">
-              {[1,2,3].map(i => <div key={i} className="h-14 bg-gray-50 rounded-xl animate-pulse" />)}
+              {[1, 2, 3].map(i => <div key={i} className="h-14 bg-gray-50 rounded-xl animate-pulse" />)}
             </div>
           ) : paths.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-8">No hay rutas aún</p>
           ) : (
             <div className="space-y-2">
               {paths.slice(0, 5).map((p) => (
-                <div key={p._id} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                <Link key={p._id} href={`/rutas/${p._id}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors">
                   <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center flex-shrink-0">
                     <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -207,7 +206,7 @@ export default function DashboardPage() {
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${difficultyBadge(p.difficulty_level)}`}>
                     {p.difficulty_level}
                   </span>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -217,7 +216,7 @@ export default function DashboardPage() {
           <h2 className="font-semibold text-gray-900 mb-4">Temas disponibles</h2>
           {loading ? (
             <div className="flex gap-2 flex-wrap">
-              {[1,2,3,4,5].map(i => <div key={i} className="h-7 w-20 bg-gray-50 rounded-full animate-pulse" />)}
+              {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-7 w-20 bg-gray-50 rounded-full animate-pulse" />)}
             </div>
           ) : tags.length === 0 ? (
             <p className="text-sm text-gray-400">No hay temas registrados aún</p>

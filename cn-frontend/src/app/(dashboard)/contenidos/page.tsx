@@ -111,7 +111,7 @@ export default function ContenidosPage() {
         /* Grid de Resultados */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map(c => (
-            <Link key={c._id} href={`/dashboard/contenidos/${c._id}`} className="group bg-white rounded-3xl border border-gray-100 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+            <Link key={c._id} href={`/contenidos/${c._id}`} className="group bg-white rounded-3xl border border-gray-100 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
             >
               <div className="flex items-start justify-between mb-5">
                 <div className="p-3 bg-indigo-50 rounded-2xl text-3xl">
