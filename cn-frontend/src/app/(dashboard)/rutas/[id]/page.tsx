@@ -38,7 +38,7 @@ function difficultyColor(level: string) {
 export default function RutaDetallePage() {
   const { id } = useParams()
   const router = useRouter()
-  const { user, loadFromStorage } = useAuthStore()
+  const { user } = useAuthStore()
 
   const [path, setPath]         = useState<PathDetail | null>(null)
   const [contents, setContents] = useState<PathContent[]>([])
@@ -47,7 +47,6 @@ export default function RutaDetallePage() {
   const [enrolled, setEnrolled]   = useState(false)
 
   useEffect(() => {
-    loadFromStorage()
     fetchData()
   }, [id])
 

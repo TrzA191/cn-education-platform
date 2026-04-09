@@ -37,7 +37,7 @@ function formatDuration(seconds: number) {
 export default function ContenidoDetallePage() {
   const { id } = useParams()
   const router = useRouter()
-  const { user, loadFromStorage } = useAuthStore()
+  const { user } = useAuthStore()
 
   const [content, setContent]     = useState<Content | null>(null)
   const [comments, setComments]   = useState<Comment[]>([])
@@ -48,7 +48,6 @@ export default function ContenidoDetallePage() {
   const [sending, setSending]     = useState(false)
 
   useEffect(() => {
-    loadFromStorage()
     fetchAll()
   }, [id])
 
