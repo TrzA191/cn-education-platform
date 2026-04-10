@@ -5,7 +5,7 @@ import './globals.css'
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "UVC Platform",
+  title: "Pathly",
   description: "Universidad Virtual Continental — Cloud Native Education Platform",
 };
 
