@@ -53,7 +53,7 @@ const getNavItems = (role: string) => {
 
   const teacherItems = [
     {
-      href: '/dashboard/subir',
+      href: '/subir',
       label: 'Subir contenido',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -66,7 +66,7 @@ const getNavItems = (role: string) => {
 
   const adminItems = [
     {
-      href: '/dashboard/admin',
+      href: '/admin',
       label: 'Panel admin',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -8,7 +8,6 @@ import { Request, Response } from 'express'
 import bcrypt from 'bcryptjs'
 import jwt, { SignOptions } from 'jsonwebtoken'
 import crypto from 'crypto'
-import type { StringValue } from 'ms'
 import { pool } from '../lib/db'
 import {
   logSecurityEvent,
@@ -122,60 +121,61 @@ export async function login(req: Request, res: Response) {
     const valid = await bcrypt.compare(password, user.password_hash)
 
     if (!valid) {
-  await recordFailedAttempt({ email, ipAddress, userAgent })
-  await updateUserOnLogin({ userId: user.id, success: false })
+      await recordFailedAttempt({ email, ipAddress, userAgent })
+      await updateUserOnLogin({ userId: user.id, success: false })
 
-  const recentFails = await countRecentFailedAttempts(email)
-  const captchaVerified = req.headers['x-captcha-verified'] === 'true'
+      const recentFails = await countRecentFailedAttempts(email)
+      const captchaVerified = req.headers['x-captcha-verified'] === 'true'
 
-  // Si llegó al umbral del captcha pero NO lo ha verificado → pedir captcha sin bloquear
-  if (recentFails >= 3 && !captchaVerified) {
-    await logSecurityEvent({
-      userId     : user.id,
-      eventType  : 'login_failed',
-      description: `${recentFails} intentos fallidos para ${email}. Captcha requerido.`,
-      ipAddress, userAgent, severity: 'medio',
-    })
-    return res.status(429).json({
-      error          : 'Demasiados intentos fallidos.',
-      requiresCaptcha: true,
-    })
-  }
+      // Si llegó al umbral del captcha pero NO lo ha verificado → pedir captcha sin bloquear
+      if (recentFails >= 3 && !captchaVerified) {
+        await logSecurityEvent({
+          userId     : user.id,
+          eventType  : 'login_failed',
+          description: `${recentFails} intentos fallidos para ${email}. Captcha requerido.`,
+          ipAddress, userAgent, severity: 'medio',
+        })
+        return res.status(429).json({
+          error          : 'Demasiados intentos fallidos.',
+          requiresCaptcha: true,
+        })
+      }
 
-  // Si ya verificó el captcha pero sigue fallando → ahí sí bloquear
-  if (recentFails >= 5 && captchaVerified) {
-    await blockAccount({ userId: user.id, reason: 'intentos_fallidos' })
-    await logSecurityEvent({
-      userId     : user.id,
-      eventType  : 'account_blocked',
-      description: `Cuenta bloqueada tras ${recentFails} intentos con captcha verificado: ${email}`,
-      ipAddress, userAgent, severity: 'critico', status: 'en_proceso',
-    })
-    return res.status(403).json({
-      error  : 'Cuenta bloqueada por múltiples intentos fallidos. Intenta en 30 minutos.',
-      blocked: true,
-    })
-  }
+      // Si ya verificó el captcha pero sigue fallando → ahí sí bloquear
+      if (recentFails >= 5 && captchaVerified) {
+        await blockAccount({ userId: user.id, reason: 'intentos_fallidos' })
+        await logSecurityEvent({
+          userId     : user.id,
+          eventType  : 'account_blocked',
+          description: `Cuenta bloqueada tras ${recentFails} intentos con captcha verificado: ${email}`,
+          ipAddress, userAgent, severity: 'critico', status: 'en_proceso',
+        })
+        return res.status(403).json({
+          error  : 'Cuenta bloqueada por múltiples intentos fallidos. Intenta en 30 minutos.',
+          blocked: true,
+        })
+      }
 
-  await logSecurityEvent({
-    userId     : user.id,
-    eventType  : 'login_failed',
-    description: `Contraseña incorrecta para ${email}. Intento ${recentFails} de 3.`,
-    ipAddress, userAgent,
-    severity   : recentFails >= 3 ? 'alto' : 'medio',
-  })
+      await logSecurityEvent({
+        userId     : user.id,
+        eventType  : 'login_failed',
+        description: `Contraseña incorrecta para ${email}. Intento ${recentFails} de 3.`,
+        ipAddress, userAgent,
+        severity   : recentFails >= 3 ? 'alto' : 'medio',
+      })
 
-  return res.status(401).json({
-    error         : 'Credenciales incorrectas',
-    failedAttempts: recentFails,
-    maxAttempts   : 3,
-  })
-}
+      return res.status(401).json({
+        error         : 'Credenciales incorrectas',
+        failedAttempts: recentFails,
+        maxAttempts   : 3,
+      })
+    }
 
     // 6. Login exitoso — generar token
     const secret  = process.env.JWT_SECRET as string
-    const expires = (process.env.JWT_EXPIRES_IN || '7d') as StringValue
-    const options: SignOptions = { expiresIn: expires }
+    const expires = process.env.JWT_EXPIRES_IN || '7d'
+    // CORRECCIÓN APLICADA: Forzamos el tipo a any para evitar el error de StringValue
+    const options: SignOptions = { expiresIn: expires as any }
 
     const token = jwt.sign(
       { id: user.id, role: user.role },

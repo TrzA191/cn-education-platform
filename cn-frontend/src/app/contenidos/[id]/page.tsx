@@ -34,6 +34,11 @@ function formatDuration(seconds: number) {
   return `${m} min`
 }
 
+function getYouTubeId(url: string): string {
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)
+  return match ? match[1] : ''
+}
+
 export default function ContenidoDetallePage({ params }: { params: { id: string } }) {
   const { id } = params
   const router = useRouter()
@@ -169,11 +174,21 @@ export default function ContenidoDetallePage({ params }: { params: { id: string 
 
         <p className="text-gray-600 mb-6">{content.description}</p>
 
+        {/* Visor de contenido adaptado para YouTube */}
         {content.cdn_url && content.content_type === 'video' && (
-          <div className="rounded-xl overflow-hidden bg-black mb-4">
-            <video controls className="w-full max-h-96" src={content.cdn_url}>
-              Tu navegador no soporta video HTML5.
-            </video>
+          <div className="rounded-xl overflow-hidden bg-black mb-4 aspect-video">
+            {content.cdn_url.includes('youtube.com') || content.cdn_url.includes('youtu.be') ? (
+              <iframe
+                className="w-full h-full"
+                src={`https://www.youtube.com/embed/${getYouTubeId(content.cdn_url)}`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <video controls className="w-full max-h-96" src={content.cdn_url}>
+                Tu navegador no soporta video HTML5.
+              </video>
+            )}
           </div>
         )}
 

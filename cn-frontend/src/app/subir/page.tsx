@@ -6,19 +6,18 @@ import api from '@/lib/api'
 import { useRouter } from 'next/navigation'
 
 export default function SubirContenidoPage() {
-  const { user, loadFromStorage } = useAuthStore()
-  const router = useRouter()
+  const { user } = useAuthStore()
+  const router   = useRouter()
 
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    content_type: 'video',
-    blob_storage_url: '',
-    cdn_url: '',
+    title           : '',
+    description     : '',
+    content_type    : 'video',
+    cdn_url         : '',
     duration_seconds: '',
   })
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error,   setError]   = useState('')
   const [success, setSuccess] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,13 +26,16 @@ export default function SubirContenidoPage() {
     setLoading(true)
     try {
       await api.post('/api/contents', {
-        ...form,
-        author_id: user?.userId,
+        title           : form.title,
+        description     : form.description,
+        content_type    : form.content_type,
+        cdn_url         : form.cdn_url || null,
         duration_seconds: form.duration_seconds ? parseInt(form.duration_seconds) : null,
-        status: 'activo',
+        author_id       : user?.userId,
+        status          : 'active',
       })
       setSuccess(true)
-      setTimeout(() => router.push('/dashboard/contenidos'), 1500)
+      setTimeout(() => router.push('/contenidos'), 1500)
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al subir el contenido')
     } finally {
@@ -61,6 +63,7 @@ export default function SubirContenidoPage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
               <input
@@ -71,6 +74,7 @@ export default function SubirContenidoPage() {
                 placeholder="Nombre del contenido"
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
               <textarea
@@ -81,6 +85,7 @@ export default function SubirContenidoPage() {
                 placeholder="Describe el contenido educativo..."
               />
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
@@ -92,41 +97,43 @@ export default function SubirContenidoPage() {
                   <option value="video">Video</option>
                   <option value="pdf">PDF</option>
                   <option value="texto">Texto</option>
-                  <option value="presentacion">Presentación</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Duración (segundos)
+                  Duración (minutos)
                 </label>
                 <input
                   type="number" min="0"
                   value={form.duration_seconds}
                   onChange={e => setForm({ ...form, duration_seconds: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Solo para video"
+                  placeholder="Ej: 25"
                 />
               </div>
             </div>
+
+            {/* URL del contenido — YouTube para videos */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">URL de almacenamiento</label>
-              <input
-                type="url" required
-                value={form.blob_storage_url}
-                onChange={e => setForm({ ...form, blob_storage_url: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="https://storage.example.com/archivo"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">URL CDN</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {form.content_type === 'video' ? 'URL de YouTube' : 'URL del contenido'}
+              </label>
               <input
                 type="url"
                 value={form.cdn_url}
                 onChange={e => setForm({ ...form, cdn_url: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="https://cdn.example.com/archivo (opcional)"
+                placeholder={
+                  form.content_type === 'video'
+                    ? 'https://www.youtube.com/watch?v=...'
+                    : 'https://ejemplo.com/archivo.pdf'
+                }
               />
+              {form.content_type === 'video' && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Pega el link de YouTube — se mostrará embebido en la plataforma
+                </p>
+              )}
             </div>
 
             {error && (
@@ -135,7 +142,7 @@ export default function SubirContenidoPage() {
               </div>
             )}
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => router.back()}
