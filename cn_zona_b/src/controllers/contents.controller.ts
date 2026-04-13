@@ -5,7 +5,7 @@ export const createContent = async (req: Request, res: Response): Promise<void> 
   try {
     const content = await MultimediaContent.create({
       ...req.body,
-      author_id: req.user!.userId,
+      author_id: req.user!.id,
     })
     res.status(201).json(content)
   } catch (error) {

@@ -3,6 +3,7 @@ import { Schema, model, Document } from 'mongoose'
 export interface IMultimediaContent extends Document {
   title: string
   description?: string
+  content_type: string // <-- ¡Campo añadido!
   blob_storage_url?: string
   cdn_url?: string
   author_id: number
@@ -14,6 +15,12 @@ export interface IMultimediaContent extends Document {
 const schema = new Schema<IMultimediaContent>({
   title: { type: String, required: true },
   description: { type: String },
+  // <-- ¡Campo añadido con validación estricta!
+  content_type: { 
+    type: String, 
+    required: true,
+    enum: ['video', 'pdf', 'texto'] 
+  },
   blob_storage_url: { type: String },
   cdn_url: { type: String },
   author_id: { type: Number, required: true },

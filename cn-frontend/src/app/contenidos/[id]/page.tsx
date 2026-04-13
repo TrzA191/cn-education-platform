@@ -35,22 +35,23 @@ function formatDuration(seconds: number) {
 }
 
 function getYouTubeId(url: string): string {
-  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)
+  const match = url.match(
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/
+  )
   return match ? match[1] : ''
 }
-
 export default function ContenidoDetallePage({ params }: { params: { id: string } }) {
   const { id } = params
   const router = useRouter()
   const { user } = useAuthStore()
 
-  const [content, setContent]       = useState<Content | null>(null)
-  const [comments, setComments]     = useState<Comment[]>([])
-  const [myRating, setMyRating]     = useState(0)
-  const [avgRating, setAvgRating]   = useState(0)
+  const [content, setContent] = useState<Content | null>(null)
+  const [comments, setComments] = useState<Comment[]>([])
+  const [myRating, setMyRating] = useState(0)
+  const [avgRating, setAvgRating] = useState(0)
   const [newComment, setNewComment] = useState('')
-  const [loading, setLoading]       = useState(true)
-  const [sending, setSending]       = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
 
   useEffect(() => {
     fetchAll()
@@ -154,11 +155,10 @@ export default function ContenidoDetallePage({ params }: { params: { id: string 
                   {formatDuration(content.duration_seconds)}
                 </span>
               )}
-              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                content.status === 'active' || content.status === 'activo'
+              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${content.status === 'active' || content.status === 'activo'
                   ? 'bg-green-50 text-green-700'
                   : 'bg-gray-100 text-gray-500'
-              }`}>
+                }`}>
                 {content.status}
               </span>
             </div>
@@ -174,18 +174,21 @@ export default function ContenidoDetallePage({ params }: { params: { id: string 
 
         <p className="text-gray-600 mb-6">{content.description}</p>
 
-        {/* Visor de contenido adaptado para YouTube */}
+        {/* Visor de contenido adaptado para YouTube con aspecto 16:9 */}
         {content.cdn_url && content.content_type === 'video' && (
-          <div className="rounded-xl overflow-hidden bg-black mb-4 aspect-video">
+          <div className="rounded-xl overflow-hidden bg-black mb-4" style={{ aspectRatio: '16/9' }}>
             {content.cdn_url.includes('youtube.com') || content.cdn_url.includes('youtu.be') ? (
               <iframe
+                width="100%"
+                height="100%"
                 className="w-full h-full"
                 src={`https://www.youtube.com/embed/${getYouTubeId(content.cdn_url)}`}
+                title="Video"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             ) : (
-              <video controls className="w-full max-h-96" src={content.cdn_url}>
+              <video controls className="w-full" src={content.cdn_url}>
                 Tu navegador no soporta video HTML5.
               </video>
             )}
@@ -207,11 +210,10 @@ export default function ContenidoDetallePage({ params }: { params: { id: string 
       <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
         <h2 className="font-semibold text-gray-900 mb-3">Califica este contenido</h2>
         <div className="flex gap-2">
-          {[1,2,3,4,5].map(star => (
+          {[1, 2, 3, 4, 5].map(star => (
             <button key={star} onClick={() => handleRating(star)}
-              className={`text-3xl transition-transform hover:scale-110 ${
-                star <= myRating ? 'text-yellow-400' : 'text-gray-200'
-              }`}>★</button>
+              className={`text-3xl transition-transform hover:scale-110 ${star <= myRating ? 'text-yellow-400' : 'text-gray-200'
+                }`}>★</button>
           ))}
           {myRating > 0 && (
             <span className="ml-2 text-sm text-gray-500 self-center">

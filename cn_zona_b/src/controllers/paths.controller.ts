@@ -6,7 +6,7 @@ export const createPath = async (req: Request, res: Response): Promise<void> => 
   try {
     const path = await LearningPath.create({
       ...req.body,
-      creator_id: req.user!.userId,
+      creator_id: req.user!.id,
     })
     res.status(201).json(path)
   } catch (error) {
