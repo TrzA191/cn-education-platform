@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { register, login, me } from "../controllers/auth.controller";
+import { register, login, me, requestVerificationCode } from "../controllers/auth.controller";
 import { auth } from "../middlewares/auth.middleware";
 import { requiresCaptcha } from '../services/security.service'
 
 const router = Router();
 
+router.post("/send-verification-code", requestVerificationCode);
 router.post("/register", register);
 router.post("/login", login);
 router.get("/me", auth(), me);

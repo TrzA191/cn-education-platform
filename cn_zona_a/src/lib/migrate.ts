@@ -149,5 +149,21 @@ export async function runMigrations() {
     END
   `);
 
+  // ── verification_codes ───────────────────────────────────────
+  await pool.request().query(`
+    IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='verification_codes' AND xtype='U')
+    BEGIN
+      CREATE TABLE verification_codes (
+        id         INT           IDENTITY(1,1) PRIMARY KEY,
+        email      NVARCHAR(255) NOT NULL,
+        code       NVARCHAR(10)  NOT NULL,
+        expires_at DATETIME2     NOT NULL,
+        created_at DATETIME2     NOT NULL DEFAULT GETDATE()
+      )
+      CREATE INDEX idx_verification_codes_email
+        ON verification_codes(email)
+    END
+  `);
+
   console.log('✅ Migraciones ejecutadas correctamente');
 }

@@ -35,6 +35,9 @@ export default function LoginPage() {
     username: '', email: '', password: '', confirmPassword: '', role: 'student' as Role,
   })
 
+  const [registerStep, setRegisterStep] = useState<1 | 2>(1)
+  const [verificationCode, setVerificationCode] = useState('')
+
   // Errores de validación del formulario de registro
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
@@ -104,11 +107,27 @@ export default function LoginPage() {
     }
   }
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     if (!validateRegister()) return
 
+    setLoading(true)
+    try {
+      await api.post('/api/auth/send-verification-code', {
+        email: registerData.email,
+      })
+      setRegisterStep(2)
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Error al enviar código')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleVerifyAndRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
     setLoading(true)
     try {
       await api.post('/api/auth/register', {
@@ -116,6 +135,7 @@ export default function LoginPage() {
         email   : registerData.email,
         password: registerData.password,
         role    : registerData.role,
+        verificationCode: verificationCode,
       })
       const res = await api.post('/api/auth/login', {
         email: registerData.email, password: registerData.password,
@@ -149,13 +169,13 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
             <button
-              onClick={() => { setTab('login'); setError(''); setCaptchaVerified(false); setForceShowCaptcha(false) }}
+              onClick={() => { setTab('login'); setError(''); setCaptchaVerified(false); setForceShowCaptcha(false); setRegisterStep(1); }}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
                 tab === 'login' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >Iniciar sesión</button>
             <button
-              onClick={() => { setTab('register'); setError(''); setFieldErrors({}) }}
+              onClick={() => { setTab('register'); setError(''); setFieldErrors({}); setRegisterStep(1); }}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
                 tab === 'register' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
@@ -201,8 +221,8 @@ export default function LoginPage() {
           )}
 
           {/* ── FORMULARIO REGISTRO ── */}
-          {tab === 'register' && (
-            <form onSubmit={handleRegister} className="space-y-4">
+          {tab === 'register' && registerStep === 1 && (
+            <form onSubmit={handleSendCode} className="space-y-4">
 
               {/* Username */}
               <div>
@@ -329,8 +349,47 @@ export default function LoginPage() {
                 type="submit" disabled={loading}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-2.5 rounded-xl text-sm transition-colors"
               >
-                {loading ? 'Creando cuenta...' : 'Crear cuenta'}
+                {loading ? 'Enviando código...' : 'Continuar'}
               </button>
+            </form>
+          )}
+
+          {tab === 'register' && registerStep === 2 && (
+            <form onSubmit={handleVerifyAndRegister} className="space-y-4">
+              <div className="text-center mb-6">
+                <p className="text-sm text-gray-600">
+                  Enviamos un código de 6 dígitos a <span className="font-semibold text-gray-900">{registerData.email}</span>.
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Código de verificación</label>
+                <input
+                  type="text" required
+                  maxLength={6}
+                  value={verificationCode}
+                  onChange={e => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-center text-2xl tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                  placeholder="000000"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setRegisterStep(1)}
+                  disabled={loading}
+                  className="w-1/3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-xl text-sm transition-colors"
+                >
+                  Volver
+                </button>
+                <button
+                  type="submit" disabled={loading || verificationCode.length !== 6}
+                  className="w-2/3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-2.5 rounded-xl text-sm transition-colors"
+                >
+                  {loading ? 'Verificando...' : 'Verificar y crear cuenta'}
+                </button>
+              </div>
             </form>
           )}
         </div>

@@ -9,6 +9,7 @@ import bcrypt from 'bcryptjs'
 import jwt, { SignOptions } from 'jsonwebtoken'
 import crypto from 'crypto'
 import { pool } from '../lib/db'
+import { sendVerificationCode } from '../lib/email'
 import {
   logSecurityEvent,
   recordFailedAttempt,
@@ -22,13 +23,70 @@ import {
 
 const MAX_FAILED_ATTEMPTS = 3
 
+// ─── CODIGO DE VERIFICACION ───────────────────────────────────────────────────
+export async function requestVerificationCode(req: Request, res: Response) {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'El correo electrónico es requerido' });
+  }
+
+  try {
+    // Generar OTP de 6 dígitos
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+
+    // Eliminar códigos anteriores
+    await pool.request()
+      .input('email', email)
+      .query(`DELETE FROM verification_codes WHERE email = @email`);
+
+    // Insertar nuevo
+    await pool.request()
+      .input('email', email)
+      .input('code', code)
+      .input('expires_at', expiresAt)
+      .query(`
+        INSERT INTO verification_codes (email, code, expires_at) 
+        VALUES (@email, @code, @expires_at)
+      `);
+
+    // Enviar correo
+    const emailResult = await sendVerificationCode(email, code);
+    if (!emailResult.success) {
+      return res.status(500).json({ error: 'No se pudo enviar el correo de verificación' });
+    }
+
+    res.json({ message: 'Código de verificación enviado al correo' });
+  } catch (err) {
+    console.error('[requestVerificationCode]', err);
+    res.status(500).json({ error: 'Error interno del servidor al enviar código' });
+  }
+}
+
 // ─── REGISTER ─────────────────────────────────────────────────────────────────
 export async function register(req: Request, res: Response) {
-  const { username, email, password, role } = req.body
+  const { username, email, password, role, verificationCode } = req.body
   const ipAddress = req.ip ?? 'unknown'
   const userAgent = req.headers['user-agent'] ?? 'unknown'
 
+  if (!verificationCode) {
+    return res.status(400).json({ error: 'Se requiere un código de verificación (verificationCode)' });
+  }
+
   try {
+    // Verificar el código
+    const verifyResult = await pool.request()
+      .input('email', email)
+      .input('code', verificationCode)
+      .query(`
+        SELECT * FROM verification_codes 
+        WHERE email = @email AND code = @code AND expires_at > GETDATE()
+      `);
+
+    if (verifyResult.recordset.length === 0) {
+      return res.status(400).json({ error: 'Código de verificación inválido o expirado' });
+    }
+
     const hash = await bcrypt.hash(password, 12)
 
     const result = await pool.request()
@@ -47,6 +105,11 @@ export async function register(req: Request, res: Response) {
     await pool.request()
       .input('user_id', userId)
       .query(`INSERT INTO user_profiles (user_id) VALUES (@user_id)`)
+
+    // Eliminar el código usado
+    await pool.request()
+      .input('email', email)
+      .query(`DELETE FROM verification_codes WHERE email = @email`);
 
     // Log de auditoría: creación de usuario (acción crítica)
     await logSecurityEvent({
