@@ -94,21 +94,29 @@ export async function countRecentFailedAttempts(email: string): Promise<number> 
 }
 
 // ─── 4. Verificar si una cuenta está bloqueada ────────────────────────────────
-export async function isAccountBlocked(userId: number): Promise<boolean> {
+export async function isAccountBlocked(userId: number): Promise<{ blocked: boolean, blockedUntil: Date | null, minutesLeft: number }> {
   try {
     const result = await pool.request()
       .input('user_id', userId)
       .query(`
-        SELECT TOP 1 id
+        SELECT TOP 1 id, blocked_until, DATEDIFF(MINUTE, GETUTCDATE(), blocked_until) as minutes_left
         FROM blocked_accounts
         WHERE user_id  = @user_id
           AND is_active = 1
           AND (blocked_until IS NULL OR blocked_until > GETUTCDATE())
+        ORDER BY blocked_at DESC
       `)
-    return result.recordset.length > 0
+    if (result.recordset.length > 0) {
+      return { 
+        blocked: true, 
+        blockedUntil: result.recordset[0].blocked_until,
+        minutesLeft: result.recordset[0].minutes_left
+      }
+    }
+    return { blocked: false, blockedUntil: null, minutesLeft: 0 }
   } catch (err) {
     console.error('[SecurityService] Error al verificar bloqueo:', err)
-    return false
+    return { blocked: false, blockedUntil: null, minutesLeft: 0 }
   }
 }
 
@@ -123,10 +131,10 @@ export async function blockAccount(params: {
     await pool.request()
       .input('user_id',       params.userId)
       .input('reason',        params.reason)
-      .input('blocked_until', new Date(Date.now() + minutes * 60 * 1000))
+      .input('minutes',       minutes)
       .query(`
         INSERT INTO blocked_accounts (user_id, reason, blocked_at, blocked_until, is_active)
-        VALUES (@user_id, @reason, GETUTCDATE(), @blocked_until, 1)
+        VALUES (@user_id, @reason, GETUTCDATE(), DATEADD(MINUTE, @minutes, GETUTCDATE()), 1)
       `)
 
     // También marcar is_blocked en users para consultas rápidas
@@ -197,6 +205,17 @@ export async function updateUserOnLogin(params: {
 
 // ─── 8. ¿Requiere captcha? (para el endpoint del frontend) ───────────────────
 export async function requiresCaptcha(email: string): Promise<boolean> {
-  const count = await countRecentFailedAttempts(email)
-  return count >= CAPTCHA_THRESHOLD
+  try {
+    const result = await pool.request()
+      .input('email', email)
+      .query(`SELECT failed_attempts FROM users WHERE email = @email`);
+    
+    if (result.recordset.length > 0) {
+      const attempts = result.recordset[0].failed_attempts;
+      return attempts >= CAPTCHA_THRESHOLD;
+    }
+  } catch (err) {
+    console.error('[SecurityService] Error al verificar captcha requerido:', err);
+  }
+  return false;
 }

@@ -27,7 +27,7 @@ export default function LoginPage() {
   const [tab,              setTab]              = useState<Tab>('login')
   const [loading,          setLoading]          = useState(false)
   const [error,            setError]            = useState('')
-  const [captchaVerified,  setCaptchaVerified]  = useState(false)
+  const [captchaToken,    setCaptchaToken]      = useState<string | null>(null)
   const [forceShowCaptcha, setForceShowCaptcha] = useState(false)
 
   const [loginData, setLoginData] = useState({ email: '', password: '' })
@@ -44,10 +44,10 @@ export default function LoginPage() {
   const { required: captchaRequired, loading: captchaLoading, recheck } =
     useCaptchaRequired(tab === 'login' ? loginData.email : undefined)
 
-  if (tab === 'login' && (captchaRequired || forceShowCaptcha) && !captchaVerified) {
+  if (tab === 'login' && (captchaRequired || forceShowCaptcha) && !captchaToken) {
     return (
-      <CaptchaGate onVerified={() => {
-        setCaptchaVerified(true)
+      <CaptchaGate onVerified={(token) => {
+        setCaptchaToken(token)
         setForceShowCaptcha(false)
       }} />
     )
@@ -81,7 +81,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const headers: Record<string, string> = {}
-      if (captchaVerified) headers['x-captcha-verified'] = 'true'
+      if (captchaToken) headers['x-recaptcha-token'] = captchaToken
 
       const res = await api.post('/api/auth/login', loginData, { headers })
       const { token, user } = res.data
@@ -90,7 +90,7 @@ export default function LoginPage() {
     } catch (err: any) {
       const data = err.response?.data
       if (data?.requiresCaptcha) {
-        setCaptchaVerified(false)
+        setCaptchaToken(null)
         setForceShowCaptcha(true)
         setError('')
         return
@@ -100,7 +100,7 @@ export default function LoginPage() {
         return
       }
       setError(data?.error || 'Error al iniciar sesión')
-      setCaptchaVerified(false)
+      setCaptchaToken(null)
       recheck()
     } finally {
       setLoading(false)
@@ -169,7 +169,7 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
             <button
-              onClick={() => { setTab('login'); setError(''); setCaptchaVerified(false); setForceShowCaptcha(false); setRegisterStep(1); }}
+              onClick={() => { setTab('login'); setError(''); setCaptchaToken(null); setForceShowCaptcha(false); setRegisterStep(1); }}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
                 tab === 'login' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
