@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
 import CaptchaGate from '@/components/CaptchaGate'
+import { GraduationCap, ArrowRight, ShieldCheck, Mail } from 'lucide-react'
 import { useCaptchaRequired } from '@/hooks/useCaptchaRequired'
 
 type Tab  = 'login' | 'register'
@@ -153,33 +154,30 @@ export default function LoginPage() {
   const pwd = registerData.password
 
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <main className="min-h-screen bg-[#f5f7fb] flex items-center justify-center p-4">
+      <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl mb-4 shadow-lg">
-            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-500 rounded-2xl mb-4 shadow-lg shadow-indigo-500/30">
+            <GraduationCap className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Pathly</h1>
-          <p className="text-gray-500 text-sm mt-1">Traza tu camino, aprende a tu ritmo</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Pathly</h1>
+          <p className="text-slate-500 font-medium mt-1">Trace your path, learn at your pace</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
+          <div className="flex bg-slate-100 rounded-xl p-1.5 mb-8">
             <button
               onClick={() => { setTab('login'); setError(''); setCaptchaToken(null); setForceShowCaptcha(false); setRegisterStep(1); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-                tab === 'login' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
+                tab === 'login' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
-            >Iniciar sesión</button>
+            >Log in</button>
             <button
               onClick={() => { setTab('register'); setError(''); setFieldErrors({}); setRegisterStep(1); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-                tab === 'register' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
+                tab === 'register' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
-            >Registrarse</button>
+            >Sign up</button>
           </div>
 
           {error && (
@@ -190,32 +188,43 @@ export default function LoginPage() {
 
           {/* ── FORMULARIO LOGIN ── */}
           {tab === 'login' && (
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
-                <input
-                  type="email" required
-                  value={loginData.email}
-                  onChange={e => setLoginData({ ...loginData, email: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                  placeholder="tu@correo.com"
-                />
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Correo electrónico</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Mail className="w-5 h-5 text-slate-400" />
+                  </div>
+                  <input
+                    type="email" required
+                    value={loginData.email}
+                    onChange={e => setLoginData({ ...loginData, email: e.target.value })}
+                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-sm"
+                    placeholder="tu@correo.com"
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-                <input
-                  type="password" required
-                  value={loginData.password}
-                  onChange={e => setLoginData({ ...loginData, password: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                  placeholder="••••••••"
-                />
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contraseña</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                     <ShieldCheck className="w-5 h-5 text-slate-400" />
+                  </div>
+                  <input
+                    type="password" required
+                    value={loginData.password}
+                    onChange={e => setLoginData({ ...loginData, password: e.target.value })}
+                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-sm"
+                    placeholder="••••••••"
+                  />
+                </div>
               </div>
               <button
                 type="submit" disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-medium py-2.5 rounded-xl text-sm transition-colors"
+                className="w-full mt-2 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 disabled:from-indigo-300 disabled:to-indigo-300 text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-md shadow-indigo-500/30 hover:shadow-lg flex items-center justify-center gap-2"
               >
                 {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+                {!loading && <ArrowRight className="w-4 h-4" />}
               </button>
             </form>
           )}
@@ -347,9 +356,10 @@ export default function LoginPage() {
 
               <button
                 type="submit" disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-2.5 rounded-xl text-sm transition-colors"
+                className="w-full mt-4 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 disabled:from-indigo-300 disabled:to-indigo-300 text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-md shadow-indigo-500/30 hover:shadow-lg flex items-center justify-center gap-2"
               >
-                {loading ? 'Enviando código...' : 'Continuar'}
+                {loading ? 'Enviando código...' : 'Continuar paso 2'}
+                {!loading && <ArrowRight className="w-4 h-4" />}
               </button>
             </form>
           )}
@@ -374,20 +384,20 @@ export default function LoginPage() {
                 />
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 mt-6">
                 <button
                   type="button"
                   onClick={() => setRegisterStep(1)}
                   disabled={loading}
-                  className="w-1/3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-xl text-sm transition-colors"
+                  className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-xl text-sm transition-colors border border-slate-200"
                 >
                   Volver
                 </button>
                 <button
                   type="submit" disabled={loading || verificationCode.length !== 6}
-                  className="w-2/3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-2.5 rounded-xl text-sm transition-colors"
+                  className="w-2/3 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 disabled:from-indigo-300 disabled:to-indigo-300 text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-md shadow-indigo-500/30 hover:shadow-lg"
                 >
-                  {loading ? 'Verificando...' : 'Verificar y crear cuenta'}
+                  {loading ? 'Verificando...' : 'Verificar e Ingresar'}
                 </button>
               </div>
             </form>
