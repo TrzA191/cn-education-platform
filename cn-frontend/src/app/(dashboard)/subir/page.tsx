@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/store/auth.store'
 import api from '@/lib/api'
 import { useRouter } from 'next/navigation'
@@ -25,10 +25,27 @@ export default function SubirContenidoPage() {
     content_type    : 'video',
     cdn_url         : '',
     duration_seconds: '',
+    difficulty_level: 'basico',
+    tags            : [] as string[]
   })
+  const [availableTags, setAvailableTags] = useState<{_id: string, name: string}[]>([])
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
   const [success, setSuccess] = useState(false)
+  useEffect(() => {
+    api.get('/api/tags')
+      .then(res => setAvailableTags(res.data || []))
+      .catch(console.error)
+  }, [])
+
+  const toggleTag = (tagId: string) => {
+    setForm(prev => ({
+      ...prev,
+      tags: prev.tags.includes(tagId) 
+        ? prev.tags.filter(id => id !== tagId) 
+        : [...prev.tags, tagId]
+    }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,11 +58,13 @@ export default function SubirContenidoPage() {
         content_type    : form.content_type,
         cdn_url         : form.cdn_url || null,
         duration_seconds: form.duration_seconds ? parseInt(form.duration_seconds) : null,
+        difficulty_level: form.difficulty_level,
+        tags            : form.tags,
         author_id       : user?.userId,
         status          : 'active',
       })
       setSuccess(true)
-      setTimeout(() => router.push('/dashboard/contenidos'), 1500)
+      setTimeout(() => router.push('/contenidos'), 1500)
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al subir el contenido')
     } finally {
@@ -129,6 +148,51 @@ export default function SubirContenidoPage() {
                   <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                     <span className="text-slate-400 text-sm font-medium">min</span>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                  <Type className="w-4 h-4 text-indigo-500" /> Nivel de Dificultad
+                </label>
+                <select
+                  value={form.difficulty_level}
+                  onChange={e => setForm({ ...form, difficulty_level: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-sm bg-white"
+                >
+                  <option value="basico">Básico</option>
+                  <option value="intermedio">Intermedio</option>
+                  <option value="avanzado">Avanzado</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-1">
+                  <Type className="w-4 h-4 text-indigo-500" /> Etiquetas
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {availableTags.map(tag => {
+                    const isSelected = form.tags.includes(tag._id)
+                    return (
+                      <button
+                        key={tag._id}
+                        type="button"
+                        onClick={() => toggleTag(tag._id)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
+                          isSelected 
+                            ? 'bg-indigo-50 text-indigo-700 border-indigo-200' 
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        {tag.name}
+                      </button>
+                    )
+                  })}
+                  {availableTags.length === 0 && (
+                    <span className="text-sm text-slate-400">Cargando...</span>
+                  )}
                 </div>
               </div>
             </div>

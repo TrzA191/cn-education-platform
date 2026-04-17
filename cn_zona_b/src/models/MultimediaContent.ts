@@ -9,6 +9,8 @@ export interface IMultimediaContent extends Document {
   author_id: number
   duration_seconds?: number
   status: 'draft' | 'processing' | 'active' | 'inactive'
+  tags: Schema.Types.ObjectId[]
+  difficulty_level?: 'basico' | 'intermedio' | 'avanzado'
   created_at: Date
 }
 
@@ -26,6 +28,8 @@ const schema = new Schema<IMultimediaContent>({
   author_id: { type: Number, required: true },
   duration_seconds: { type: Number },
   status: { type: String, enum: ['draft', 'processing', 'active', 'inactive'], default: 'draft' },
+  tags: [{ type: Schema.Types.ObjectId, ref: 'Tag' }],
+  difficulty_level: { type: String, enum: ['basico', 'intermedio', 'avanzado'] },
   created_at: { type: Date, default: Date.now },
 })
 

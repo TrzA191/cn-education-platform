@@ -36,8 +36,13 @@ router.patch('/contents/:id', authenticate, authorize('teacher', 'admin'), proxy
 router.get('/tags', proxy(ZONA_B))
 router.post('/tags', authenticate, authorize('admin'), proxy(ZONA_B))
 
+// Tags - User Interests
+router.get('/tags/interests/me', authenticate, proxy(ZONA_B))
+router.put('/tags/interests/me', authenticate, proxy(ZONA_B))
+
 // Rutas de aprendizaje
 router.get('/paths', proxy(ZONA_B))
+router.post('/paths/generate', authenticate, proxy(ZONA_B))
 router.get('/paths/:id', proxy(ZONA_B))
 router.post('/paths', authenticate, proxy(ZONA_B))
 

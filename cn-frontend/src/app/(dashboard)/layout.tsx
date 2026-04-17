@@ -24,17 +24,17 @@ const getNavItems = (role: string) => {
       icon: <LayoutDashboard className="w-5 h-5" />,
     },
     {
-      href: '/dashboard/contenidos',
+      href: '/contenidos',
       label: 'Contenidos',
       icon: <BookOpen className="w-5 h-5" />,
     },
     {
-      href: '/dashboard/rutas',
+      href: '/rutas',
       label: 'Rutas de aprendizaje',
       icon: <MapIcon className="w-5 h-5" />,
     },
     {
-      href: '/dashboard/perfil',
+      href: '/perfil',
       label: 'Mi perfil',
       icon: <User className="w-5 h-5" />,
     },
