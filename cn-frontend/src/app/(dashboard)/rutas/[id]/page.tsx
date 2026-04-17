@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import api from '@/lib/api'
 import Link from 'next/link'
+import { PlayCircle, CheckCircle2, BookOpen, Clock, Play, Map as MapIcon, ChevronLeft, Check } from 'lucide-react'
 
 interface PathDetail {
   _id: number
@@ -110,92 +111,151 @@ function difficultyColor(level: string) {
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <button
         onClick={() => router.back()}
-        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors"
+        className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 mb-6 transition-colors font-medium"
       >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
+        <ChevronLeft className="w-4 h-4" />
         Volver a rutas
       </button>
 
-      {/* Header de la ruta */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${difficultyColor(path.difficulty_level)}`}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Columna Izquierda: Información de la Ruta (Sidebar) */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm sticky top-6">
+            <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mb-6">
+              <MapIcon className="w-6 h-6" />
+            </div>
+            
+            <div className="flex items-center gap-2 mb-4">
+              <span className={`text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider ${difficultyColor(path.difficulty_level)}`}>
                 {path.difficulty_level}
               </span>
-              {path.is_system_generated && (
-                <span className="text-xs bg-violet-50 text-violet-700 px-2.5 py-1 rounded-full font-medium">
-                  🤖 Generada automáticamente
-                </span>
-              )}
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">{path.title}</h1>
-            <p className="text-gray-600">{path.description}</p>
-          </div>
 
-          {enrolled ? (
-            <div className="flex-shrink-0 bg-green-50 text-green-700 text-sm font-medium px-5 py-2.5 rounded-xl">
-              ✓ Inscrito
-            </div>
-          ) : (
-            <button
-              onClick={handleEnroll}
-              disabled={enrolling}
-              className="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
-            >
-              {enrolling ? 'Inscribiendo...' : 'Inscribirse'}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Contenidos de la ruta */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <h2 className="font-semibold text-gray-900 mb-4">
-          Contenidos de la ruta
-          <span className="ml-2 text-sm font-normal text-gray-400">({contents.length} recursos)</span>
-        </h2>
-
-        {contents.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-8">Esta ruta no tiene contenidos asignados aún</p>
-        ) : (
-          <div className="space-y-3">
-            {contents.map((item, index) => (
-              <div key={item._id} className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
-                <div className="w-8 h-8 bg-indigo-50 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-bold text-indigo-600">{index + 1}</span>
+            <h1 className="text-2xl font-bold text-slate-900 mb-3">{path.title}</h1>
+            <p className="text-slate-500 text-sm leading-relaxed mb-8">{path.description}</p>
+            
+            <div className="space-y-4 mb-8">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2 text-slate-500">
+                  <BookOpen className="w-4 h-4" />
+                  Módulos
                 </div>
-                <div className="flex-1 min-w-0">
-                  {item.content ? (
-                    <>
-                      <p className="text-sm font-medium text-gray-900">{item.content.title}</p>
-                      <p className="text-xs text-gray-400 capitalize">
-                        {item.content.content_type}
-                        {item.content.duration_seconds
-                          ? ` · ${Math.round(item.content.duration_seconds / 60)} min`
-                          : ''}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-gray-500">Contenido #{item.content_id}</p>
-                  )}
-                </div>
-                <Link
-                  href={`/dashboard/contenidos/${item.content_id}`}
-                  className="text-xs text-indigo-600 hover:text-indigo-700 font-medium flex-shrink-0"
-                >
-                  Ver →
-                </Link>
+                <span className="font-semibold text-slate-900">{contents.length}</span>
               </div>
-            ))}
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2 text-slate-500">
+                  <Clock className="w-4 h-4" />
+                  Tiempo est.
+                </div>
+                <span className="font-semibold text-slate-900">
+                  {Math.round(contents.reduce((acc, curr) => acc + (curr.content?.duration_seconds || 0), 0) / 60)} min
+                </span>
+              </div>
+            </div>
+
+            {enrolled ? (
+              <div className="w-full">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-slate-500 font-medium">Progreso</span>
+                  <span className="text-indigo-600 font-bold">Inscrito</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2">
+                  <div className="bg-indigo-500 h-2 rounded-full" style={{ width: '10%' }}></div>
+                </div>
+                <p className="text-xs text-slate-400 mt-2 text-center">Continúa con el primer módulo</p>
+              </div>
+            ) : (
+              <button
+                onClick={handleEnroll}
+                disabled={enrolling}
+                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-semibold py-3 px-6 rounded-xl transition-all shadow-md shadow-indigo-500/20"
+              >
+                {enrolling ? 'Inscribiendo...' : 'Inscribirme para empezar'}
+              </button>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* Columna Derecha: Timeline de Contenidos */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm h-full">
+            <h2 className="text-xl font-bold text-slate-900 mb-8">Contenido de la ruta</h2>
+
+            {contents.length === 0 ? (
+              <div className="text-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <p className="text-slate-400 font-medium">Esta ruta no tiene contenidos asignados aún</p>
+              </div>
+            ) : (
+              <div className="space-y-6 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px md:before:mx-0 md:before:translate-x-0 md:before:left-6 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-indigo-100 before:via-slate-200 before:to-transparent">
+                {contents.map((item, index) => {
+                  // Lógica visual básica
+                  const isCompleted = false;
+                  const isCurrent = enrolled ? index === 0 : false;
+
+                  return (
+                    <div key={item._id} className="relative flex items-start gap-6 group">
+                      {/* Timeline Node */}
+                      <div className={`flex items-center justify-center w-12 h-12 rounded-full border-4 border-white shadow-sm shrink-0 z-10 transition-colors ${
+                        isCompleted ? 'bg-emerald-500' : isCurrent ? 'bg-indigo-600' : 'bg-slate-200'
+                      }`}>
+                        {isCompleted ? (
+                          <Check className="w-5 h-5 text-white" />
+                        ) : (
+                          <span className={`text-sm font-bold ${isCurrent ? 'text-white' : 'text-slate-500'}`}>{index + 1}</span>
+                        )}
+                      </div>
+                      
+                      {/* Content Card */}
+                      <div className={`flex-1 p-5 rounded-2xl border transition-all ${
+                        isCurrent ? 'border-indigo-200 bg-indigo-50/30 shadow-md shadow-indigo-500/5' : 'border-slate-100 bg-white hover:border-slate-300 hover:shadow-sm'
+                      }`}>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div>
+                            {item.content ? (
+                              <>
+                                <h3 className={`text-base font-bold mb-1 ${isCurrent ? 'text-indigo-900' : 'text-slate-800'}`}>
+                                  {item.content.title}
+                                </h3>
+                                <div className="flex items-center gap-3 text-xs font-medium text-slate-500">
+                                  <span className="uppercase tracking-wider">{item.content.content_type}</span>
+                                  {item.content.duration_seconds && (
+                                    <>
+                                      <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                      <span className="flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        {Math.round(item.content.duration_seconds / 60)} min
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                              </>
+                            ) : (
+                              <p className="text-sm text-slate-500 font-medium">Contenido #{item.content_id}</p>
+                            )}
+                          </div>
+                          
+                          <Link
+                            href={`/contenidos/${item.content_id}`}
+                            className={`flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
+                              isCurrent 
+                                ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-500/20' 
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            }`}
+                          >
+                            <Play className="w-4 h-4 ml-0.5" />
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

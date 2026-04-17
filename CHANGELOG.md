@@ -34,3 +34,9 @@ Registro cronológico e histórico de modificaciones en el monorepo.
 - **Perfil de Usuario:** Extensibilidad en `/perfil` integrando pills en el catálogo de las etiquetas generadas en Mongo y el binding para asignación de nuevos intereses por usuario.
 - **Formulario de Carga:** Nueva selector de dificultad y categorización con Array de etiquetas conectadas de forma Reactiva desde la API (`/subir`).
 - **Discovery Engine:** Refactorización visual en `/rutas`, la arquitectura del menú fue mejorada hacia una landing page donde se aloja el trigger manual de auto-sugerencias (`handleGenerate`) y renderizado "Premium" en tarjetas generadas por el sistema.
+
+## [2026-04-17] Rediseño UI/UX de Rutas de Aprendizaje
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- **Perfil de Usuario:** Se eliminó la configuración de "Mis Intereses", delegando este paso hacia la experiencia de creación misma para un flujo más natural.
+- **Rutas Pincipales (`/rutas`):** Modernización del botón principal eliminando alusiones y estética "IA". Se integró un modal de configuración que aparece antes de la creación que fuerza al usuario a escoger tags para mejorar sus recomendaciones.
+- **Dashboard de Ruta Individual (`/rutas/[id]`):** Rediseño total usando layout de dos columnas, reemplazando la lista básica de recursos por un Timeline Vertical con el progreso por módulo y un panel estático con métricas (tiempo y avance).
