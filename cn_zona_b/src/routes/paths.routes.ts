@@ -4,9 +4,9 @@ import { authenticate } from '../middlewares/auth.middleware'
 
 const router = Router()
 
-router.get('/', listPaths)
+router.get('/', authenticate, listPaths)
 router.post('/generate', authenticate, generateSystemPath)
-router.get('/:id', getPath)
+router.get('/:id', authenticate, getPath)
 router.post('/', authenticate, createPath)
 
 export default router

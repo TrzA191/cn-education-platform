@@ -40,3 +40,18 @@ Registro cronológico e histórico de modificaciones en el monorepo.
 - **Perfil de Usuario:** Se eliminó la configuración de "Mis Intereses", delegando este paso hacia la experiencia de creación misma para un flujo más natural.
 - **Rutas Pincipales (`/rutas`):** Modernización del botón principal eliminando alusiones y estética "IA". Se integró un modal de configuración que aparece antes de la creación que fuerza al usuario a escoger tags para mejorar sus recomendaciones.
 - **Dashboard de Ruta Individual (`/rutas/[id]`):** Rediseño total usando layout de dos columnas, reemplazando la lista básica de recursos por un Timeline Vertical con el progreso por módulo y un panel estático con métricas (tiempo y avance).
+
+## [2026-04-20] Gestión de Usuarios, Reestructuración Admin y Privacidad
+**Carpeta: `cn_zona_a` (Backend API)**
+- **CRUD Administrativo:** Implementados métodos `createUser`, `updateUser` y `deleteUser` en `users.controller.ts` para permitir la administración manual de cuentas fuera del flujo de registro público.
+- **Auditoría:** Integrado `logSecurityEvent` en las acciones administrativas para mantener una bitácora de quién (admin) modificó a quién (usuario).
+- **Rutas:** Registrados nuevos endpoints bajo el middleware de protección `auth("admin")`.
+
+**Carpeta: `cn_zona_b` (Backend API Content)**
+- **Protección de Identidad:** Corregida fuga de datos en Rutas de Aprendizaje. Se protegieron los endpoints `GET /api/paths` con el middleware `authenticate` y se añadieron filtros obligatorios por `creator_id` en las consultas de MongoDB. Ahora las rutas son privadas por defecto para el usuario que las crea.
+
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- **Arquitectura de Navegación Admin:** Reestructuración masiva del Panel de Control (`admin/page.tsx`). Se implementó un sistema de categorías de alto nivel (Gestión de Cuentas vs Seguridad) para desacoplar las tareas operativas de las de auditoría.
+- **Módulo de Gestión:** Nueva interfaz con tablas de acciones dinámicas (Editar/Eliminar) y formularios modales para el escalamiento de profesores y alumnos.
+- **Experiencia de Usuario (Modales SaaS):** Eliminadas las alertas nativas del navegador (`confirm`, `alert`). Se implementó un componente de `ConfirmModal` personalizado con transiciones de Framer-motion style (animate-in) y estados visuales para Éxito, Error y Eliminación.
+- **Look & Feel SaaS Premium:** Refinamiento visual usando `lucide-react`, gradientes en tarjetas de estadísticas y estados de carga (`Loader2`).

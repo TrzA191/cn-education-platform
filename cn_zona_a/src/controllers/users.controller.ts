@@ -1,15 +1,131 @@
 import { Request, Response } from "express";
 import { pool } from "../lib/db";
+import bcrypt from "bcryptjs";
+import { logSecurityEvent } from "../services/security.service";
 
 export async function listUsers(req: Request, res: Response) {
+  try {
+    const result = await pool.request().query(`
+      SELECT id, username, email, role, created_at
+      FROM users
+      ORDER BY created_at DESC
+    `);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error('[listUsers]', err);
+    res.status(500).json({ error: 'Error al listar usuarios' });
+  }
+}
 
-  const result = await pool.request().query(`
-SELECT id,username,email,role,created_at
-FROM users
-`);
+export async function createUser(req: Request, res: Response) {
+  const { username, email, password, role } = req.body;
+  const adminId = (req as any).user?.id;
+  const ipAddress = req.ip ?? 'unknown';
 
-  res.json(result.recordset);
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: "Faltan campos obligatorios" });
+  }
 
+  try {
+    const hash = await bcrypt.hash(password, 12);
+    
+    const result = await pool.request()
+      .input("username", username)
+      .input("email", email)
+      .input("password", hash)
+      .input("role", role || "student")
+      .query(`
+        INSERT INTO users (username, email, password_hash, role)
+        OUTPUT INSERTED.id
+        VALUES (@username, @email, @password, @role)
+      `);
+
+    const newUserId = result.recordset[0].id;
+
+    // Crear perfil vacío
+    await pool.request()
+      .input("user_id", newUserId)
+      .query(`INSERT INTO user_profiles (user_id) VALUES (@user_id)`);
+
+    await logSecurityEvent({
+      userId: adminId,
+      eventType: 'login_success', // Reutilizando tipo o podrías crear 'user_created'
+      description: `Admin [${adminId}] creó usuario: ${email} (${role})`,
+      ipAddress,
+      severity: 'bajo'
+    });
+
+    res.status(201).json({ message: "Usuario creado", id: newUserId });
+  } catch (err: any) {
+    if (err.number === 2627 || err.number === 2601) {
+      return res.status(409).json({ error: "El correo o usuario ya existe" });
+    }
+    console.error('[createUser]', err);
+    res.status(500).json({ error: "Error al crear usuario" });
+  }
+}
+
+export async function updateUser(req: Request, res: Response) {
+  const { id } = req.params;
+  const { username, email, role } = req.body;
+  const adminId = (req as any).user?.id;
+  const ipAddress = req.ip ?? 'unknown';
+
+  try {
+    await pool.request()
+      .input("id", id)
+      .input("username", username)
+      .input("email", email)
+      .input("role", role)
+      .query(`
+        UPDATE users 
+        SET username = @username, email = @email, role = @role 
+        WHERE id = @id
+      `);
+
+    await logSecurityEvent({
+      userId: adminId,
+      eventType: 'password_changed', // Reutilizando para auditoría
+      description: `Admin [${adminId}] actualizó usuario ID: ${id}`,
+      ipAddress,
+      severity: 'bajo'
+    });
+
+    res.json({ message: "Usuario actualizado" });
+  } catch (err) {
+    console.error('[updateUser]', err);
+    res.status(500).json({ error: "Error al actualizar usuario" });
+  }
+}
+
+export async function deleteUser(req: Request, res: Response) {
+  const { id } = req.params;
+  const adminId = (req as any).user?.id;
+  const ipAddress = req.ip ?? 'unknown';
+
+  if (Number(id) === adminId) {
+    return res.status(400).json({ error: "No puedes eliminarte a ti mismo" });
+  }
+
+  try {
+    // Primero perfiles y datos relacionados si hay cascada manual
+    await pool.request().input("id", id).query(`DELETE FROM user_profiles WHERE user_id = @id`);
+    // Luego el usuario
+    await pool.request().input("id", id).query(`DELETE FROM users WHERE id = @id`);
+
+    await logSecurityEvent({
+      userId: adminId,
+      eventType: 'session_revoked',
+      description: `Admin [${adminId}] eliminó usuario ID: ${id}`,
+      ipAddress,
+      severity: 'medio'
+    });
+
+    res.json({ message: "Usuario eliminado correctamente" });
+  } catch (err) {
+    console.error('[deleteUser]', err);
+    res.status(500).json({ error: "Error al eliminar usuario" });
+  }
 }
 
 export async function getProfile(req: Request, res: Response) {

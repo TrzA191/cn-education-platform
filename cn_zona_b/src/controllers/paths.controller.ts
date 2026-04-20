@@ -17,7 +17,8 @@ export const createPath = async (req: Request, res: Response): Promise<void> => 
 
 export const listPaths = async (req: Request, res: Response): Promise<void> => {
   try {
-    const paths = await LearningPath.find().sort({ created_at: -1 })
+    const creatorId = req.user!.id
+    const paths = await LearningPath.find({ creator_id: creatorId }).sort({ created_at: -1 })
     res.json(paths)
   } catch (error) {
     console.error('[listPaths]', error)
@@ -27,9 +28,10 @@ export const listPaths = async (req: Request, res: Response): Promise<void> => {
 
 export const getPath = async (req: Request, res: Response): Promise<void> => {
   try {
-    const path = await LearningPath.findById(req.params.id)
+    const creatorId = req.user!.id
+    const path = await LearningPath.findOne({ _id: req.params.id, creator_id: creatorId })
     if (!path) {
-      res.status(404).json({ error: 'Ruta no encontrada' })
+      res.status(404).json({ error: 'Ruta no encontrada o no tienes permiso para verla' })
       return
     }
     const contents = await PathContent.find({ path_id: path._id })
@@ -50,7 +52,7 @@ import { UserEnrollment } from '../models/UserEnrollment'
 export const generateSystemPath = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id
-    
+
     const interests = await UserInterest.find({ user_id: userId })
     if (!interests || interests.length === 0) {
       res.status(400).json({ error: 'No tienes intereses configurados. Ve a tu perfil para seleccionarlos.' })
@@ -58,7 +60,7 @@ export const generateSystemPath = async (req: Request, res: Response): Promise<v
     }
 
     const tagIds = interests.map(i => i.tag_id)
-    const contents = await MultimediaContent.find({ 
+    const contents = await MultimediaContent.find({
       tags: { $in: tagIds },
       status: 'active'
     })
@@ -85,7 +87,7 @@ export const generateSystemPath = async (req: Request, res: Response): Promise<v
     })
 
     let sequence = 1
-    const pathContents = await Promise.all(sortedContents.map(c => 
+    const pathContents = await Promise.all(sortedContents.map(c =>
       PathContent.create({
         path_id: path._id,
         content_id: c._id,
