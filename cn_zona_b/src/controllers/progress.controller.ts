@@ -7,7 +7,7 @@ import { UserEnrollment } from '../models/UserEnrollment'
 export const saveProgress = async (req: Request, res: Response): Promise<void> => {
   try {
     const { content_id, watched_seconds } = req.body
-    const user_id = req.user!.userId
+    const user_id = req.user!.id
 
     const content = await MultimediaContent.findById(content_id)
     if (!content) {
@@ -52,7 +52,7 @@ export const getUserProgress = async (req: Request, res: Response): Promise<void
 export const enrollPath = async (req: Request, res: Response): Promise<void> => {
   try {
     const { path_id } = req.body
-    const user_id = req.user!.userId
+    const user_id = req.user!.id
 
     const path = await LearningPath.findById(path_id)
     if (!path) {
@@ -76,7 +76,7 @@ export const enrollPath = async (req: Request, res: Response): Promise<void> => 
 
 export const getEnrollments = async (req: Request, res: Response): Promise<void> => {
   try {
-    const user_id = req.user!.userId
+    const user_id = req.user!.id
     const enrollments = await UserEnrollment.find({ user_id }).populate('path_id')
     res.json(enrollments)
   } catch (error) {

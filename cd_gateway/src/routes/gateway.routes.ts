@@ -41,10 +41,14 @@ router.get('/tags/interests/me', authenticate, proxy(ZONA_B))
 router.put('/tags/interests/me', authenticate, proxy(ZONA_B))
 
 // Rutas de aprendizaje
-router.get('/paths', proxy(ZONA_B))
+router.get('/paths', authenticate, proxy(ZONA_B))
 router.post('/paths/generate', authenticate, proxy(ZONA_B))
-router.get('/paths/:id', proxy(ZONA_B))
+router.post('/paths/contents', authenticate, proxy(ZONA_B))
+router.delete('/paths/contents/:contentItemId', authenticate, proxy(ZONA_B))
+router.get('/paths/:id', authenticate, proxy(ZONA_B))
 router.post('/paths', authenticate, proxy(ZONA_B))
+router.put('/paths/:id', authenticate, proxy(ZONA_B))
+router.delete('/paths/:id', authenticate, proxy(ZONA_B))
 
 // Progreso
 router.post('/progress', authenticate, proxy(ZONA_B))

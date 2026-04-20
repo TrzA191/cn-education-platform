@@ -41,17 +41,24 @@ Registro cronológico e histórico de modificaciones en el monorepo.
 - **Rutas Pincipales (`/rutas`):** Modernización del botón principal eliminando alusiones y estética "IA". Se integró un modal de configuración que aparece antes de la creación que fuerza al usuario a escoger tags para mejorar sus recomendaciones.
 - **Dashboard de Ruta Individual (`/rutas/[id]`):** Rediseño total usando layout de dos columnas, reemplazando la lista básica de recursos por un Timeline Vertical con el progreso por módulo y un panel estático con métricas (tiempo y avance).
 
-## [2026-04-20] Gestión de Usuarios, Reestructuración Admin y Privacidad
+## [2026-04-20] Gestión Administrativa, Estabilidad y Ciclo de Vida de Rutas
 **Carpeta: `cn_zona_a` (Backend API)**
-- **CRUD Administrativo:** Implementados métodos `createUser`, `updateUser` y `deleteUser` en `users.controller.ts` para permitir la administración manual de cuentas fuera del flujo de registro público.
-- **Auditoría:** Integrado `logSecurityEvent` en las acciones administrativas para mantener una bitácora de quién (admin) modificó a quién (usuario).
-- **Rutas:** Registrados nuevos endpoints bajo el middleware de protección `auth("admin")`.
+- **CRUD Administrativo:** Implementados métodos `createUser`, `updateUser` y `deleteUser` en `users.controller.ts` para permitir la administración manual de cuentas.
+- **Auditoría:** Integrado `logSecurityEvent` en las acciones administrativas para trazabilidad.
 
 **Carpeta: `cn_zona_b` (Backend API Content)**
-- **Protección de Identidad:** Corregida fuga de datos en Rutas de Aprendizaje. Se protegieron los endpoints `GET /api/paths` con el middleware `authenticate` y se añadieron filtros obligatorios por `creator_id` en las consultas de MongoDB. Ahora las rutas son privadas por defecto para el usuario que las crea.
+- **Protección de Identidad:** Corregida fuga de datos en Rutas de Aprendizaje añadiendo filtros obligatorios por `creator_id`.
+- **Estabilidad de API:** Solucionado error 500 en `/api/progress/enrollments` unificando la identidad del usuario en el token JWT.
+- **Ciclo de Vida de Rutas:** Implementado sistema de "Borrado Seguro" (Archivo). Las rutas pasan a estado `archived` antes de ser eliminadas permanentemente.
+- **Personalización Dinámica:** Modificado el generador de rutas para asignar títulos y descripciones basadas en los temas reales seleccionados.
+- **Gestión de Módulos:** Nuevos endpoints `addPathContent` y `removePathContent` para permitir la edición granular de los contenidos dentro de una ruta.
 
 **Carpeta: `cn-frontend` (Frontend Next.js)**
-- **Arquitectura de Navegación Admin:** Reestructuración masiva del Panel de Control (`admin/page.tsx`). Se implementó un sistema de categorías de alto nivel (Gestión de Cuentas vs Seguridad) para desacoplar las tareas operativas de las de auditoría.
-- **Módulo de Gestión:** Nueva interfaz con tablas de acciones dinámicas (Editar/Eliminar) y formularios modales para el escalamiento de profesores y alumnos.
-- **Experiencia de Usuario (Modales SaaS):** Eliminadas las alertas nativas del navegador (`confirm`, `alert`). Se implementó un componente de `ConfirmModal` personalizado con transiciones de Framer-motion style (animate-in) y estados visuales para Éxito, Error y Eliminación.
-- **Look & Feel SaaS Premium:** Refinamiento visual usando `lucide-react`, gradientes en tarjetas de estadísticas y estados de carga (`Loader2`).
+- **Rutas de Aprendizaje:** 
+    - **Solución de Crash:** Corregido error de renderizado crítico en el detalle de rutas.
+    - **Gestión de Tarjetas:** Añadidos controles para Editar, Archivar, Restaurar y Eliminar permanentemente.
+    - **Confirmación SaaS:** Implementado `ConfirmModal` personalizado para acciones destructivas, reemplazando los diálogos nativos del navegador.
+    - **Editor de Rutas Extendido:** Nuevo modal de edición que permite no solo cambiar metadatos (título/descripción/dificultad) sino también agregar nuevos módulos o quitar existentes.
+    - **Sección Papelera:** Nueva vista de "Archivadas" para gestionar el ciclo de vida de las rutas del usuario.
+- **Panel Admin:** Rediseño modular con navegación inteligente y modales de confirmación con estética SaaS Premium.
+

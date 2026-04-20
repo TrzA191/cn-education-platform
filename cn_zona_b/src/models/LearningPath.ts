@@ -6,6 +6,7 @@ export interface ILearningPath extends Document {
   creator_id: number
   difficulty_level: 'basico' | 'intermedio' | 'avanzado'
   is_system_generated: boolean
+  status: 'active' | 'archived'
   created_at: Date
 }
 
@@ -15,6 +16,7 @@ const schema = new Schema<ILearningPath>({
   creator_id: { type: Number, required: true },
   difficulty_level: { type: String, enum: ['basico', 'intermedio', 'avanzado'], default: 'basico' },
   is_system_generated: { type: Boolean, default: false },
+  status: { type: String, enum: ['active', 'archived'], default: 'active' },
   created_at: { type: Date, default: Date.now },
 })
 
