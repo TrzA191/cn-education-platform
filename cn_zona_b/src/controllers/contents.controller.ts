@@ -16,7 +16,23 @@ export const createContent = async (req: Request, res: Response): Promise<void> 
 
 export const listContents = async (req: Request, res: Response): Promise<void> => {
   try {
-    const contents = await MultimediaContent.find({ status: 'active' }).sort({ created_at: -1 })
+    const { title, content_type, difficulty_level } = req.query
+
+    const query: any = { status: 'active' }
+
+    if (title) {
+      query.title = { $regex: title, $options: 'i' }
+    }
+
+    if (content_type) {
+      query.content_type = content_type
+    }
+
+    if (difficulty_level) {
+      query.difficulty_level = difficulty_level
+    }
+
+    const contents = await MultimediaContent.find(query).sort({ created_at: -1 })
     res.json(contents)
   } catch (error) {
     console.error('[listContents]', error)

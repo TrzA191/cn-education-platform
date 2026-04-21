@@ -20,7 +20,7 @@ Registro cronológico e histórico de modificaciones en el monorepo.
 - **Escalating Lockout:** Actualizada la lógica dinámica de bloqueos en `auth.controller.ts` para aplicar tiempos escalonados fijos (10, 15, 30 y 60 minutos) basándose en la persistencia del campo absoluto `failed_attempts` del usuario.
 - **Timezone Fix SQL:** Refactorización en `security.service.ts` para que todas las inserciones del castigo utilicen `DATEADD(MINUTE)` dictado estrictamente por `GETUTCDATE()` dentro de SQL Server, anulando así discrepancias por la zona horaria del servidor (que anulaba los bloqueos).
 
-**Carpeta: `cn-frontend` (Frontend Next.js)**
+**Carpeta: `cn-frontend` (Frontend Next.js)** 
 - **Integración del Token:** Modificado `login/page.tsx` para almacenar y utilizar de forma controlada el String del token (`captchaToken`) expedido por el componente `<CaptchaGate />`, adjuntándose dentro de los headers de inicio de sesión (`x-recaptcha-token`).
 - **Rediseño UI (Dashboard SaaS):** Reestructuración total de `layout.tsx` y `dashboard/page.tsx`. Transición a modo oscuro para el Sidebar, barra superior (Top Bar) con notificaciones, migración de SVGs planos a `lucide-react`, y rediseño de las vistas usando *Grid* para mostrar tarjetas estilizadas con Tailwind CSS puro.
 - **Rollout de UI (Fixes & Login):** Restaurados los enlaces `<Link>` perdidos y expansión de los estilos base de alta fidelidad hacia los controladores externos como `login/page.tsx`.
@@ -62,3 +62,39 @@ Registro cronológico e histórico de modificaciones en el monorepo.
     - **Sección Papelera:** Nueva vista de "Archivadas" para gestionar el ciclo de vida de las rutas del usuario.
 - **Panel Admin:** Rediseño modular con navegación inteligente y modales de confirmación con estética SaaS Premium.
 
+## [2026-04-20 — Sesión 2] Corrección de Rutas Gateway, Inscripción y Progreso Real
+
+**Carpeta: `cd_gateway` (Gateway API)**
+- **Bug crítico resuelto:** Las rutas `POST /progress/enroll` y `GET /progress/enrollments` estaban declaradas **después** del wildcard `/:userId`, haciendo que Express las capturara como parámetro y retornara 404. Reordenadas antes del wildcard.
+- **Nueva ruta de progreso:** Registrado `GET /progress/path/:pathId` para obtener el avance real por ruta.
+- **Rutas de paths completas:** Añadidos `PUT /paths/:id`, `DELETE /paths/:id`, `POST /paths/contents`, `DELETE /paths/contents/:id` que faltaban.
+- **Autenticación correcta:** `GET /paths` y `GET /paths/:id` ahora pasan el token JWT correctamente.
+
+**Carpeta: `cn_zona_b` (Backend API Content)**
+- **Mismo bug de orden corregido en `other.routes.ts`:** `/enroll` y `/enrollments` declarados antes de `/:userId`.
+- **Nuevo endpoint `getPathProgress`:** Calcula el porcentaje real cruzando `PathContent` de la ruta con `UserProgress` del usuario. Retorna `{ total, completed, percentage, contentProgress[] }`.
+- **Seguridad en enroll:** `enrollPath` ya no acepta `user_id` del body, lo extrae del token JWT.
+
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- **Botón "Empezar":** Renombrado desde "Inscribirme para empezar". Maneja 409 (ya inscrito) sin mostrar error.
+- **Reproductor inline:** El botón ▶️ de cada módulo abre un panel modal con reproductor embebido (YouTube/video/PDF). Ya no navega a `/contenidos/:id`.
+- **Progreso real:** La barra del sidebar refleja el porcentaje real calculado en backend con "X de N módulos vistos".
+- **Estado visual por módulo:** Nodos del timeline con verde ✅ (completado), indigo 🔵 (actual), gris ⬜ (pendiente).
+- **Registro de actividad:** Al abrir un contenido se llama `POST /progress` automáticamente. Al cerrar el viewer se recarga el progreso.
+- **Botón "Agregar" en editor:** Reemplazado ícono `+` invisible por botón pill `indigo-600` con texto "Agregar".
+
+## [2026-04-21] Habilitación de Catálogo de Contenidos y Filtrador Dinámico
+
+**Carpeta: `cn_zona_b` (Backend API Content)**
+- **Filtrado Inteligente:** Actualizado el controlador `contents.controller.ts` para soportar parámetros de búsqueda (`query params`). Ahora permite filtrar por título (regex), tipo de contenido (`video`, `pdf`, `texto`) y nivel de dificultad.
+
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- **Nueva Página de Catálogo (`/contenidos`):** Implementación de la vista principal de recursos educativos con diseño "SaaS Premium".
+- **Sistema de Filtrado:**
+    - Barra de búsqueda con "debouncing" para optimizar peticiones al backend.
+    - Filtros rápidos por tipo de recurso y nivel de dificultad integrados en una barra minimalista.
+- **Visualización de Contenidos:**
+    - Cuadrícula de tarjetas con micro-interacciones (hover states, elevación).
+    - Diferenciación visual por tipo mediante iconos y esquemas de color dinámicos.
+    - Skeletons de carga personalizados para una experiencia "zero-layout-shift".
+- **Integración de Navegación:** Vinculación directa con la vista de detalle de contenidos, cerrando el ciclo de exploración y consumo de material.

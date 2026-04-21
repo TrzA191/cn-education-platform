@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import api from '@/lib/api'
 import {
-  PlayCircle, CheckCircle2, BookOpen, Clock, Play, Map as MapIcon,
-  ChevronLeft, Check, X, FileText, Video, Loader2, Star, Send, MessageSquare
+  PlayCircle, BookOpen, Clock, Play, Map as MapIcon,
+  ChevronLeft, Check, X, FileText, Video, Loader2, Star, Send, MessageSquare, CheckCircle2
 } from 'lucide-react'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -345,6 +345,10 @@ export default function RutaDetallePage({ params }: { params: { id: string } }) 
   const [enrolling, setEnrolling] = useState(false)
   const [enrolled, setEnrolled] = useState(false)
 
+  // Progreso real
+  const [progressPct, setProgressPct] = useState(0)
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
+
   // Viewer inline
   const [activeContentId, setActiveContentId] = useState<string | null>(null)
 
@@ -359,6 +363,7 @@ export default function RutaDetallePage({ params }: { params: { id: string } }) 
       setPath(data.path || data)
       setContents(data.contents || [])
 
+      // Verificar inscripción
       try {
         const enrollRes = await api.get('/api/progress/enrollments')
         const enrollments = enrollRes.data || []
@@ -366,9 +371,10 @@ export default function RutaDetallePage({ params }: { params: { id: string } }) 
           (e: any) => e.path_id?._id === id || e.path_id === id
         )
         setEnrolled(isEnrolled)
-      } catch {
-        // si falla no bloquea la página
-      }
+      } catch { /* no bloquea */ }
+
+      // Cargar progreso real
+      await fetchProgress()
     } catch (err) {
       console.error(err)
     } finally {
@@ -376,19 +382,47 @@ export default function RutaDetallePage({ params }: { params: { id: string } }) 
     }
   }
 
+  const fetchProgress = async () => {
+    try {
+      const res = await api.get(`/api/progress/path/${id}`)
+      const data = res.data
+      setProgressPct(data.percentage || 0)
+      const ids = new Set<string>(
+        (data.contentProgress || [])
+          .filter((p: any) => p.is_completed)
+          .map((p: any) => p.content_id)
+      )
+      setCompletedIds(ids)
+    } catch { /* progreso opcional */ }
+  }
+
   const handleEnroll = async () => {
     setEnrolling(true)
     try {
-      await api.post('/api/progress/enroll', {
-        user_id: user?.userId,
-        path_id: Number(id),
-      })
+      await api.post('/api/progress/enroll', { path_id: id })
       setEnrolled(true)
-    } catch (err) {
-      console.error(err)
+    } catch (err: any) {
+      // 409 = ya inscrito, no es error real
+      if (err.response?.status === 409) setEnrolled(true)
+      else console.error(err)
     } finally {
       setEnrolling(false)
     }
+  }
+
+  // Abrir viewer y registrar que el usuario empezó a ver el contenido
+  const handleOpenContent = async (contentId: string) => {
+    setActiveContentId(contentId)
+    // Registrar inicio (1 segundo visto) para que aparezca en progreso
+    try {
+      await api.post('/api/progress', { content_id: contentId, watched_seconds: 1 })
+    } catch { /* silencioso */ }
+  }
+
+  // Al cerrar el viewer recargamos el progreso actualizado
+  const handleCloseViewer = async () => {
+    setActiveContentId(null)
+    await fetchProgress()
   }
 
   if (loading) {
@@ -456,16 +490,28 @@ export default function RutaDetallePage({ params }: { params: { id: string } }) 
                 </div>
               </div>
 
+              {/* Progreso real o botón Empezar */}
               {enrolled ? (
-                <div className="w-full">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-slate-500 font-medium">Progreso</span>
-                    <span className="text-indigo-600 font-bold">Inscrito</span>
+                <div className="w-full space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500 font-medium">Tu progreso</span>
+                    <span className="text-indigo-600 font-bold">{progressPct}%</span>
                   </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2">
-                    <div className="bg-indigo-500 h-2 rounded-full" style={{ width: '10%' }}></div>
+                  <div className="w-full bg-slate-100 rounded-full h-2.5">
+                    <div
+                      className="bg-indigo-500 h-2.5 rounded-full transition-all duration-500"
+                      style={{ width: `${progressPct}%` }}
+                    />
                   </div>
-                  <p className="text-xs text-slate-400 mt-2 text-center">Continúa con el primer módulo</p>
+                  {progressPct === 100 ? (
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-bold mt-1">
+                      <CheckCircle2 className="w-4 h-4" /> ¡Ruta completada!
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400 mt-1">
+                      {completedIds.size} de {contents.length} módulos vistos
+                    </p>
+                  )}
                 </div>
               ) : (
                 <button
@@ -494,14 +540,16 @@ export default function RutaDetallePage({ params }: { params: { id: string } }) 
               ) : (
                 <div className="space-y-6 relative before:absolute before:inset-0 before:ml-6 before:-translate-x-px md:before:mx-0 md:before:translate-x-0 md:before:left-6 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-indigo-100 before:via-slate-200 before:to-transparent">
                   {contents.map((item, index) => {
-                    const isCompleted = false
-                    const isCurrent = enrolled ? index === 0 : false
                     const contentId = item.content_id?._id || String(item.content_id)
+                    const isCompleted = completedIds.has(contentId)
+                    const isCurrent = enrolled && !isCompleted && index === [...contents].findIndex(
+                      c => !completedIds.has(c.content_id?._id || String(c.content_id))
+                    )
 
                     return (
                       <div key={item._id} className="relative flex items-start gap-6 group">
                         {/* Timeline Node */}
-                        <div className={`flex items-center justify-center w-12 h-12 rounded-full border-4 border-white shadow-sm shrink-0 z-10 transition-colors ${
+                        <div className={`flex items-center justify-center w-12 h-12 rounded-full border-4 border-white shadow-sm shrink-0 z-10 transition-all ${
                           isCompleted ? 'bg-emerald-500' : isCurrent ? 'bg-indigo-600' : 'bg-slate-200'
                         }`}>
                           {isCompleted ? (
@@ -513,15 +561,19 @@ export default function RutaDetallePage({ params }: { params: { id: string } }) 
 
                         {/* Content Card */}
                         <div className={`flex-1 p-5 rounded-2xl border transition-all ${
-                          isCurrent
-                            ? 'border-indigo-200 bg-indigo-50/30 shadow-md shadow-indigo-500/5'
-                            : 'border-slate-100 bg-white hover:border-slate-300 hover:shadow-sm'
+                          isCompleted
+                            ? 'border-emerald-100 bg-emerald-50/30'
+                            : isCurrent
+                              ? 'border-indigo-200 bg-indigo-50/30 shadow-md shadow-indigo-500/5'
+                              : 'border-slate-100 bg-white hover:border-slate-300 hover:shadow-sm'
                         }`}>
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                             <div>
                               {item.content_id ? (
                                 <>
-                                  <h3 className={`text-base font-bold mb-1 ${isCurrent ? 'text-indigo-900' : 'text-slate-800'}`}>
+                                  <h3 className={`text-base font-bold mb-1 ${
+                                    isCompleted ? 'text-emerald-800' : isCurrent ? 'text-indigo-900' : 'text-slate-800'
+                                  }`}>
                                     {item.content_id.title}
                                   </h3>
                                   <div className="flex items-center gap-3 text-xs font-medium text-slate-500">
@@ -535,6 +587,11 @@ export default function RutaDetallePage({ params }: { params: { id: string } }) 
                                         </span>
                                       </>
                                     )}
+                                    {isCompleted && (
+                                      <span className="flex items-center gap-1 text-emerald-600 font-bold">
+                                        <CheckCircle2 className="w-3.5 h-3.5" /> Completado
+                                      </span>
+                                    )}
                                   </div>
                                 </>
                               ) : (
@@ -542,18 +599,20 @@ export default function RutaDetallePage({ params }: { params: { id: string } }) 
                               )}
                             </div>
 
-                            {/* Botón Play inline — sin navegación */}
+                            {/* Botón Ver inline */}
                             {contentId && (
                               <button
-                                onClick={() => setActiveContentId(contentId)}
+                                onClick={() => handleOpenContent(contentId)}
                                 className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all ${
-                                  isCurrent
-                                    ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-500/20'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 border border-transparent'
+                                  isCompleted
+                                    ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                    : isCurrent
+                                      ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-500/20'
+                                      : 'bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 border border-transparent hover:border-indigo-100'
                                 }`}
                               >
                                 <Play className="w-3.5 h-3.5 fill-current" />
-                                Ver
+                                {isCompleted ? 'Repasar' : 'Ver'}
                               </button>
                             )}
                           </div>

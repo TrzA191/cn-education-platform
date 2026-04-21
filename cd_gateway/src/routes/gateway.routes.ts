@@ -50,7 +50,10 @@ router.post('/paths', authenticate, proxy(ZONA_B))
 router.put('/paths/:id', authenticate, proxy(ZONA_B))
 router.delete('/paths/:id', authenticate, proxy(ZONA_B))
 
-// Progreso
+// Progreso — rutas específicas ANTES del wildcard /:userId
+router.post('/progress/enroll', authenticate, proxy(ZONA_B))
+router.get('/progress/enrollments', authenticate, proxy(ZONA_B))
+router.get('/progress/path/:pathId', authenticate, proxy(ZONA_B))
 router.post('/progress', authenticate, proxy(ZONA_B))
 router.get('/progress/:userId', authenticate, proxy(ZONA_B))
 
@@ -66,10 +69,7 @@ router.get('/comments/:contentId', proxy(ZONA_B))
 router.post('/ratings', authenticate, proxy(ZONA_B))
 router.get('/ratings/:contentId', proxy(ZONA_B))
 
-router.post('/progress/enroll', authenticate, proxy(ZONA_B))
-router.get('/progress/enrollments', authenticate, proxy(ZONA_B))
-
 router.get('/users/security-logs', authenticate, authorize('admin'), proxy(ZONA_A))
 router.get('/users/failed-attempts', authenticate, authorize('admin'), proxy(ZONA_A))
 
-export default router
+export default router

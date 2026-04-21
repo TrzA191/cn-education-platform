@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import { UserProgress } from '../models/UserProgress'
 import { MultimediaContent } from '../models/MultimediaContent'
 import { LearningPath } from '../models/LearningPath'
+import { PathContent } from '../models/PathContent'
 import { UserEnrollment } from '../models/UserEnrollment'
 
 export const saveProgress = async (req: Request, res: Response): Promise<void> => {
@@ -84,3 +85,53 @@ export const getEnrollments = async (req: Request, res: Response): Promise<void>
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 }
+
+/**
+ * GET /progress/path/:pathId
+ * Retorna el porcentaje real de avance del usuario en una ruta,
+ * cruzando los PathContent de la ruta con los UserProgress del usuario.
+ */
+export const getPathProgress = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const user_id = req.user!.id
+    const { pathId } = req.params
+
+    // Lista de contenidos de la ruta
+    const pathContents = await PathContent.find({ path_id: pathId })
+    const total = pathContents.length
+
+    if (total === 0) {
+      res.json({ total: 0, completed: 0, percentage: 0, contentProgress: [] })
+      return
+    }
+
+    const contentIds = pathContents.map(pc => pc.content_id)
+
+    // Progreso real del usuario para esos contenidos
+    const progressRecords = await UserProgress.find({
+      user_id,
+      content_id: { $in: contentIds },
+    })
+
+    const completedSet = new Set(
+      progressRecords
+        .filter(p => p.is_completed)
+        .map(p => p.content_id.toString())
+    )
+
+    const completed = completedSet.size
+    const percentage = Math.round((completed / total) * 100)
+
+    // Mapa content_id -> progreso para el frontend
+    const contentProgress = progressRecords.map(p => ({
+      content_id: p.content_id.toString(),
+      is_completed: p.is_completed,
+      completion_percentage: p.completion_percentage,
+    }))
+
+    res.json({ total, completed, percentage, contentProgress })
+  } catch (error) {
+    console.error('[getPathProgress]', error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+}
