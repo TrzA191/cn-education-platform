@@ -98,3 +98,14 @@ Registro cronológico e histórico de modificaciones en el monorepo.
     - Diferenciación visual por tipo mediante iconos y esquemas de color dinámicos.
     - Skeletons de carga personalizados para una experiencia "zero-layout-shift".
 - **Integración de Navegación:** Vinculación directa con la vista de detalle de contenidos, cerrando el ciclo de exploración y consumo de material.
+
+## [2026-04-24] Integración de Azure Blob Storage y Refactorización de Subida
+**Carpeta: `cn_zona_b` (Backend API Content)**
+- **Almacenamiento en la Nube:** Instalación de dependencias `@azure/storage-blob` y `multer` para manejo `multipart/form-data`.
+- **Servicio Azure:** Creación de `lib/azure.ts` para conectar con el contenedor `videos` en Azure Storage.
+- **Controlador de Contenido:** El endpoint `/api/contents` ahora intercepta `req.file`, lo transfiere directamente a Azure mediante un *buffer*, y almacena en Mongo la URL pública resultante (`cdn_url`).
+
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- **Rediseño del Formulario de Carga:** Se eliminó el campo de URL de YouTube en `/subir/page.tsx`.
+- **UI Drag & Drop:** Implementada una caja de subida interactiva utilizando íconos de `lucide-react` para aceptar y previsualizar archivos locales.
+- **Petición con FormData:** Refactorización de `handleSubmit` para empacar todos los campos de texto junto con el archivo físico dentro de una instancia nativa `FormData`, asegurando compatibilidad con el nuevo backend.

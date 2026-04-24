@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/store/auth.store'
 import api from '@/lib/api'
 import { useRouter } from 'next/navigation'
@@ -9,10 +9,11 @@ import {
   CheckCircle2, 
   FileType, 
   Clock, 
-  Link as LinkIcon,
   Type,
   AlignLeft,
-  XCircle
+  XCircle,
+  FileUp,
+  File as FileIcon
 } from 'lucide-react'
 
 export default function SubirContenidoPage() {
@@ -23,15 +24,18 @@ export default function SubirContenidoPage() {
     title           : '',
     description     : '',
     content_type    : 'video',
-    cdn_url         : '',
     duration_seconds: '',
     difficulty_level: 'basico',
     tags            : [] as string[]
   })
+  const [file, setFile] = useState<File | null>(null)
   const [availableTags, setAvailableTags] = useState<{_id: string, name: string}[]>([])
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
   const [success, setSuccess] = useState(false)
+  
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     api.get('/api/tags')
       .then(res => setAvailableTags(res.data || []))
@@ -47,21 +51,35 @@ export default function SubirContenidoPage() {
     }))
   }
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFile(e.target.files[0])
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      await api.post('/api/contents', {
-        title           : form.title,
-        description     : form.description,
-        content_type    : form.content_type,
-        cdn_url         : form.cdn_url || null,
-        duration_seconds: form.duration_seconds ? parseInt(form.duration_seconds) : null,
-        difficulty_level: form.difficulty_level,
-        tags            : form.tags,
-        author_id       : user?.userId,
-        status          : 'active',
+      const formData = new FormData()
+      formData.append('title', form.title)
+      formData.append('description', form.description)
+      formData.append('content_type', form.content_type)
+      if (form.duration_seconds) {
+        formData.append('duration_seconds', form.duration_seconds)
+      }
+      formData.append('difficulty_level', form.difficulty_level)
+      formData.append('tags', JSON.stringify(form.tags))
+      formData.append('status', 'active')
+      if (file) {
+        formData.append('file', file)
+      }
+
+      await api.post('/api/contents', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       })
       setSuccess(true)
       setTimeout(() => router.push('/contenidos'), 1500)
@@ -76,7 +94,7 @@ export default function SubirContenidoPage() {
     <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-8 pl-2">
         <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Publicar Contenido</h1>
-        <p className="text-slate-500 font-medium mt-1">Agrega un nuevo recurso educativo a la plataforma para tus estudiantes.</p>
+        <p className="text-slate-500 font-medium mt-1">Sube un nuevo recurso directamente a Azure para tus estudiantes.</p>
       </div>
 
       <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8">
@@ -86,7 +104,7 @@ export default function SubirContenidoPage() {
               <CheckCircle2 className="w-10 h-10 text-white" />
             </div>
             <p className="text-2xl font-bold text-slate-800">¡Contenido subido exitosamente!</p>
-            <p className="text-slate-500 font-medium mt-2">Guardando en la Zona B y redirigiendo al catálogo...</p>
+            <p className="text-slate-500 font-medium mt-2">Guardando en Azure y redirigiendo al catálogo...</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -127,9 +145,9 @@ export default function SubirContenidoPage() {
                   onChange={e => setForm({ ...form, content_type: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-sm bg-white"
                 >
-                  <option value="video">Video Interactivo</option>
+                  <option value="video">Video</option>
                   <option value="pdf">Documento PDF</option>
-                  <option value="texto">Artículo / Texto</option>
+                  <option value="texto">Archivo genérico</option>
                 </select>
               </div>
               
@@ -199,25 +217,52 @@ export default function SubirContenidoPage() {
 
             <div className="space-y-1.5 pt-2">
               <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                <LinkIcon className="w-4 h-4 text-indigo-500" /> 
-                {form.content_type === 'video' ? 'Enlace de YouTube' : 'URL de la Nube (CDN / Drive)'}
+                <FileUp className="w-4 h-4 text-indigo-500" /> 
+                Archivo a Subir
               </label>
-              <input
-                type="url"
-                value={form.cdn_url}
-                onChange={e => setForm({ ...form, cdn_url: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-sm"
-                placeholder={
-                  form.content_type === 'video'
-                    ? 'https://www.youtube.com/watch?v=XyZ...'
-                    : 'https://almacen.tuservidor.com/documento.pdf'
-                }
-              />
-              {form.content_type === 'video' && (
-                <p className="text-xs font-semibold text-indigo-500/80 mt-1.5 ml-1">
-                  * El sistema incrustará automáticamente el reproductor optimizado de YouTube.
-                </p>
-              )}
+              
+              <div 
+                className="w-full border-2 border-dashed border-slate-200 rounded-2xl p-8 hover:border-indigo-400 hover:bg-indigo-50/50 transition-colors cursor-pointer group flex flex-col items-center justify-center text-center"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  onChange={handleFileChange}
+                />
+                
+                {file ? (
+                  <div className="flex flex-col items-center">
+                    <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-3">
+                      <FileIcon className="w-7 h-7" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-800">{file.name}</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {(file.size / (1024 * 1024)).toFixed(2)} MB
+                    </p>
+                    <button 
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setFile(null) }}
+                      className="mt-4 text-xs font-semibold text-rose-500 hover:text-rose-600"
+                    >
+                      Quitar archivo
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="w-14 h-14 bg-slate-50 text-slate-400 group-hover:text-indigo-500 group-hover:bg-indigo-100 rounded-xl flex items-center justify-center mb-3 transition-colors">
+                      <UploadCloud className="w-7 h-7" />
+                    </div>
+                    <p className="text-sm font-semibold text-slate-700">
+                      Haz clic para explorar tus archivos
+                    </p>
+                    <p className="text-xs text-slate-500 mt-2 font-medium">
+                      Soporta Videos, PDFs y Documentos
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
 
             {error && (
@@ -236,10 +281,10 @@ export default function SubirContenidoPage() {
                 Cancelar
               </button>
               <button
-                type="submit" disabled={loading}
-                className="flex-[2] bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 disabled:from-indigo-300 disabled:to-indigo-300 text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-md shadow-indigo-500/30 flex items-center justify-center gap-2"
+                type="submit" disabled={loading || !file}
+                className="flex-[2] bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 disabled:from-slate-200 disabled:text-slate-400 disabled:shadow-none text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-md shadow-indigo-500/30 flex items-center justify-center gap-2"
               >
-                {loading ? 'Procesando en la Nube...' : 'Publicar Material'}
+                {loading ? 'Subiendo a Azure Blob...' : 'Subir y Publicar'}
                 {!loading && <UploadCloud className="w-5 h-5" />}
               </button>
             </div>

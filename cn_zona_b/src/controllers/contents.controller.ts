@@ -1,10 +1,34 @@
 import { Request, Response } from 'express'
 import { MultimediaContent } from '../models/MultimediaContent'
+import { uploadFileToBlob } from '../lib/azure'
 
 export const createContent = async (req: Request, res: Response): Promise<void> => {
   try {
+    const { title, description, content_type, duration_seconds, difficulty_level, tags } = req.body
+    
+    let cdn_url = req.body.cdn_url || null;
+
+    if (req.file) {
+      cdn_url = await uploadFileToBlob(req.file.buffer, req.file.originalname, req.file.mimetype)
+    }
+
+    let parsedTags = tags;
+    if (typeof tags === 'string') {
+      try {
+        parsedTags = JSON.parse(tags);
+      } catch (e) {
+        parsedTags = tags.split(',').filter(Boolean);
+      }
+    }
+
     const content = await MultimediaContent.create({
-      ...req.body,
+      title,
+      description,
+      content_type,
+      duration_seconds: duration_seconds ? parseInt(duration_seconds) : null,
+      difficulty_level,
+      tags: parsedTags,
+      cdn_url,
       author_id: req.user!.id,
     })
     res.status(201).json(content)
