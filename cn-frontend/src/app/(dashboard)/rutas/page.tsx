@@ -30,11 +30,11 @@ interface PathContentItem {
 
 function difficultyColor(level: string) {
   const map: Record<string, string> = {
-    basico    : 'bg-green-50 text-green-700',
-    intermedio: 'bg-yellow-50 text-yellow-700',
-    avanzado  : 'bg-red-50 text-red-700',
+    basico    : 'bg-green-50 text-green-700 dark:bg-emerald-500/10 dark:text-emerald-400',
+    intermedio: 'bg-yellow-50 text-yellow-700 dark:bg-amber-500/10 dark:text-amber-400',
+    avanzado  : 'bg-red-50 text-red-700 dark:bg-rose-500/10 dark:text-rose-400',
   }
-  return map[level] || 'bg-gray-100 text-gray-600'
+  return map[level] || 'bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-slate-400'
 }
 
 /* ─────────── Componente Modal de Confirmación SaaS ─────────── */
@@ -54,26 +54,26 @@ function ConfirmModal({ isOpen, title, message, confirmLabel, variant, isLoading
   const isDanger = variant === 'danger'
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-transparent dark:border-slate-800">
         {/* Header con icono */}
-        <div className={`p-8 flex flex-col items-center text-center gap-4 ${isDanger ? 'bg-rose-50' : 'bg-amber-50'}`}>
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isDanger ? 'bg-rose-100' : 'bg-amber-100'}`}>
+        <div className={`p-8 flex flex-col items-center text-center gap-4 ${isDanger ? 'bg-rose-50 dark:bg-rose-500/5' : 'bg-amber-50 dark:bg-amber-500/5'}`}>
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isDanger ? 'bg-rose-100 dark:bg-rose-500/20' : 'bg-amber-100 dark:bg-amber-500/20'}`}>
             {isDanger
-              ? <Trash2 className="w-7 h-7 text-rose-600" />
-              : <Archive className="w-7 h-7 text-amber-600" />
+              ? <Trash2 className="w-7 h-7 text-rose-600 dark:text-rose-400" />
+              : <Archive className="w-7 h-7 text-amber-600 dark:text-amber-400" />
             }
           </div>
           <div>
-            <h3 className="text-xl font-bold text-slate-900">{title}</h3>
-            <p className="text-sm text-slate-500 mt-2 leading-relaxed">{message}</p>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">{message}</p>
           </div>
         </div>
         {/* Acciones */}
-        <div className="p-6 flex gap-3">
+        <div className="p-6 flex gap-3 dark:bg-slate-900">
           <button
             onClick={onCancel}
             disabled={isLoading}
-            className="flex-1 px-5 py-3 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-all"
+            className="flex-1 px-5 py-3 text-sm font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-2xl transition-all"
           >
             Cancelar
           </button>
@@ -278,20 +278,20 @@ export default function RutasPage() {
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Rutas de aprendizaje</h1>
-          <p className="text-slate-500 font-medium mt-1">Secuencias de contenido para guiar tu aprendizaje desde nivel básico hasta avanzado.</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Rutas de aprendizaje</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">Secuencias de contenido para guiar tu aprendizaje desde nivel básico hasta avanzado.</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex bg-slate-100 p-1 rounded-xl">
+          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
             <button
               onClick={() => setActiveView('active')}
-              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${activeView === 'active' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${activeView === 'active' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
             >
               Activas
             </button>
             <button
               onClick={() => setActiveView('archived')}
-              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${activeView === 'archived' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${activeView === 'archived' ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
             >
               Archivadas
             </button>
@@ -329,11 +329,11 @@ export default function RutasPage() {
           {paths.map(p => (
             <div
               key={p._id}
-              className={`relative overflow-hidden bg-white rounded-3xl border transition-all hover:-translate-y-1 hover:shadow-xl shadow-slate-100 ${activeView === 'archived' ? 'border-slate-200 opacity-80' : 'border-slate-100'}`}
+              className={`relative overflow-hidden bg-white dark:bg-slate-900 rounded-3xl border transition-all hover:-translate-y-1 hover:shadow-xl shadow-slate-100 dark:shadow-none ${activeView === 'archived' ? 'border-slate-200 dark:border-slate-700 opacity-80' : 'border-slate-100 dark:border-slate-800'}`}
             >
               <div className="p-6">
                 <div className="flex items-start justify-between gap-4 mb-4">
-                  <div className={`p-3 rounded-2xl ${activeView === 'archived' ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 text-indigo-600'}`}>
+                  <div className={`p-3 rounded-2xl ${activeView === 'archived' ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500' : 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'}`}>
                     <Route className="w-6 h-6" />
                   </div>
                   <div className="flex items-center gap-2">
@@ -341,7 +341,7 @@ export default function RutasPage() {
                       <>
                         <button
                           onClick={() => handleOpenEdit(p)}
-                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                          className="p-2 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-all"
                           title="Editar y gestionar contenidos"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -378,8 +378,8 @@ export default function RutasPage() {
                   </div>
                 </div>
 
-                <h3 className="text-xl font-bold text-slate-900 mb-2 leading-tight">{p.title}</h3>
-                <p className="text-sm text-slate-500 mb-6 line-clamp-2 leading-relaxed">{p.description}</p>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 leading-tight">{p.title}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 line-clamp-2 leading-relaxed">{p.description}</p>
 
                 <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-auto">
                   <div className="flex items-center gap-2 text-slate-400 text-sm font-medium">
@@ -389,7 +389,7 @@ export default function RutasPage() {
                   {activeView === 'active' && (
                     <Link
                       href={`/rutas/${p._id}`}
-                      className="text-sm font-bold px-5 py-2.5 rounded-xl transition-all bg-slate-50 text-slate-700 hover:bg-slate-100"
+                      className="text-sm font-bold px-5 py-2.5 rounded-xl transition-all bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750"
                     >
                       Explorar ruta →
                     </Link>
@@ -420,10 +420,10 @@ export default function RutasPage() {
       {/* ── Modal de configuración de intereses ── */}
       {showConfigModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-900">Configura tus intereses</h2>
-              <button onClick={() => setShowConfigModal(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] border border-transparent dark:border-slate-800">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Configura tus intereses</h2>
+              <button onClick={() => setShowConfigModal(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -441,8 +441,8 @@ export default function RutasPage() {
                       onClick={() => toggleTag(tag._id)}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
                         isSelected
-                          ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                          ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30'
+                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
                       }`}
                     >
                       {tag.name}
@@ -455,10 +455,10 @@ export default function RutasPage() {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3">
               <button
                 onClick={() => setShowConfigModal(false)}
-                className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors"
+                className="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
                 disabled={generating || savingInterests}
               >
                 Cancelar
@@ -479,14 +479,14 @@ export default function RutasPage() {
       {/* ── Modal de Edición Ampliada ── */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh]">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh] border border-transparent dark:border-slate-800">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Personalizar Ruta</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Edita el detalle y gestiona los módulos de esta ruta</p>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Personalizar Ruta</h2>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Edita el detalle y gestiona los módulos de esta ruta</p>
               </div>
-              <button onClick={() => setShowEditModal(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors">
+              <button onClick={() => setShowEditModal(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -496,32 +496,32 @@ export default function RutasPage() {
               <div className="p-6 space-y-4 border-b border-slate-100">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Información básica</p>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Título de la ruta</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Título de la ruta</label>
                   <input
                     type="text"
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none text-slate-900"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none text-slate-900 dark:text-white"
                     placeholder="Ej: Mi ruta de Backend"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Descripción corta</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Descripción corta</label>
                   <textarea
                     value={editDesc}
                     onChange={(e) => setEditDesc(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none text-slate-900 resize-none h-20"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none text-slate-900 dark:text-white resize-none h-20"
                     placeholder="¿De qué trata esta ruta?"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Nivel de dificultad</label>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Nivel de dificultad</label>
                   <div className="flex gap-2">
                     {(['basico', 'intermedio', 'avanzado'] as const).map(d => (
                       <button
                         key={d}
                         onClick={() => setEditDifficulty(d)}
-                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${editDifficulty === d ? difficultyColor(d) + ' border-current' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}
+                        className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${editDifficulty === d ? difficultyColor(d) + ' border-current' : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'}`}
                       >
                         {d}
                       </button>
@@ -544,11 +544,11 @@ export default function RutasPage() {
                 ) : (
                   <div className="space-y-2">
                     {pathContents.map((pc, idx) => (
-                      <div key={pc._id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl group">
-                        <span className="w-6 h-6 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center text-xs font-bold shrink-0">{idx + 1}</span>
+                      <div key={pc._id} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl group">
+                        <span className="w-6 h-6 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-lg flex items-center justify-center text-xs font-bold shrink-0">{idx + 1}</span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate">{pc.content_id?.title || 'Sin título'}</p>
-                          <p className="text-xs text-slate-400 capitalize">{pc.content_id?.content_type}</p>
+                          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{pc.content_id?.title || 'Sin título'}</p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500 capitalize">{pc.content_id?.content_type}</p>
                         </div>
                         <button
                           onClick={() => handleRemoveContent(pc._id)}
@@ -573,7 +573,7 @@ export default function RutasPage() {
                     placeholder="Buscar contenido..."
                     value={contentSearch}
                     onChange={(e) => setContentSearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none text-sm text-slate-900"
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none text-sm text-slate-900 dark:text-white"
                   />
                 </div>
                 {loadingContents ? (
@@ -587,10 +587,10 @@ export default function RutasPage() {
                 ) : (
                   <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
                     {filteredContents.map(c => (
-                      <div key={c._id} className="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-xl hover:border-indigo-200 transition-all group">
+                      <div key={c._id} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-xl hover:border-indigo-200 dark:hover:border-indigo-500/50 transition-all group">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate">{c.title}</p>
-                          <p className="text-xs text-slate-400 capitalize">{c.content_type}</p>
+                          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{c.title}</p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500 capitalize">{c.content_type}</p>
                         </div>
                         <button
                           onClick={() => handleAddContent(c._id)}
@@ -612,10 +612,10 @@ export default function RutasPage() {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 shrink-0">
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3 shrink-0">
               <button
                 onClick={() => setShowEditModal(false)}
-                className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors"
+                className="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
                 disabled={isUpdating}
               >
                 Cerrar

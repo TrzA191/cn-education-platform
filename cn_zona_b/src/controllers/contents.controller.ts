@@ -8,6 +8,13 @@ export const createContent = async (req: Request, res: Response): Promise<void> 
     
     let cdn_url = req.body.cdn_url || null;
 
+    console.log("FILE:", req.file); // Diagnóstico rápido sugerido
+
+    if (!req.file && !cdn_url) {
+      res.status(400).json({ error: "No se recibió ningún archivo (req.file is undefined)" });
+      return;
+    }
+
     if (req.file) {
       cdn_url = await uploadFileToBlob(req.file.buffer, req.file.originalname, req.file.mimetype)
     }

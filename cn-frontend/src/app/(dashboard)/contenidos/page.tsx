@@ -30,11 +30,11 @@ interface Content {
 
 function difficultyColor(level: string) {
   const map: Record<string, string> = {
-    basico: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    intermedio: 'bg-amber-50 text-amber-700 border-amber-100',
-    avanzado: 'bg-rose-50 text-rose-700 border-rose-100',
+    basico: 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+    intermedio: 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+    avanzado: 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20',
   }
-  return map[level] || 'bg-slate-50 text-slate-600 border-slate-100'
+  return map[level] || 'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
 }
 
 function ContentIcon({ type, className }: { type: string, className?: string }) {
@@ -91,17 +91,17 @@ export default function ContenidosPage() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
-          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Catálogo de Contenidos</h1>
-          <p className="text-slate-500 font-medium text-lg">Explora nuestra biblioteca de recursos multimedia y potencia tu aprendizaje.</p>
+          <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">Catálogo de Contenidos</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">Explora nuestra biblioteca de recursos multimedia y potencia tu aprendizaje.</p>
         </div>
-        <div className="flex items-center gap-2 text-sm font-bold text-slate-400 bg-slate-100/50 px-4 py-2 rounded-2xl border border-slate-100">
+        <div className="flex items-center gap-2 text-sm font-bold text-slate-400 dark:text-slate-500 bg-slate-100/50 dark:bg-slate-800/50 px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-800">
           <BookOpen className="w-4 h-4" />
           <span>{contents.length} Recursos disponibles</span>
         </div>
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-white p-4 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col lg:flex-row gap-4 items-center">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col lg:flex-row gap-4 items-center">
         
         {/* Search */}
         <div className="relative flex-1 w-full">
@@ -111,12 +111,12 @@ export default function ContenidosPage() {
             placeholder="Buscar por título del contenido..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 rounded-3xl bg-slate-50 border-transparent focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none text-slate-900 font-medium"
+            className="w-full pl-12 pr-4 py-4 rounded-3xl bg-slate-50 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-750 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none text-slate-900 dark:text-white font-medium placeholder-slate-400 dark:placeholder-slate-500"
           />
           {search && (
             <button 
               onClick={() => setSearch('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-200 rounded-full text-slate-400 transition-colors"
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-400 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -125,8 +125,8 @@ export default function ContenidosPage() {
 
         {/* Filter Group */}
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-          <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-            <span className="text-xs font-bold text-slate-400 px-2 uppercase tracking-widest">Tipo</span>
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 px-2 uppercase tracking-widest">Tipo</span>
             {[
               { id: '', label: 'Todos' },
               { id: 'video', label: 'Videos' },
@@ -138,8 +138,8 @@ export default function ContenidosPage() {
                 onClick={() => setTypeFilter(t.id)}
                 className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
                   typeFilter === t.id 
-                    ? 'bg-white text-indigo-600 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
                 {t.label}
@@ -147,8 +147,8 @@ export default function ContenidosPage() {
             ))}
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-            <span className="text-xs font-bold text-slate-400 px-2 uppercase tracking-widest">Nivel</span>
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 px-2 uppercase tracking-widest">Nivel</span>
             {[
               { id: '', label: 'Todos' },
               { id: 'basico', label: 'Básico' },
@@ -160,8 +160,8 @@ export default function ContenidosPage() {
                 onClick={() => setDifficultyFilter(d.id)}
                 className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
                   difficultyFilter === d.id 
-                    ? 'bg-white text-indigo-600 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
                 {d.label}
@@ -175,11 +175,11 @@ export default function ContenidosPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1,2,3,4,5,6].map(i => (
-            <div key={i} className="h-[420px] bg-white rounded-[2.5rem] border border-slate-100 animate-pulse overflow-hidden">
-               <div className="h-48 bg-slate-50" />
+            <div key={i} className="h-[420px] bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 animate-pulse overflow-hidden">
+               <div className="h-48 bg-slate-50 dark:bg-slate-800/50" />
                <div className="p-8 space-y-4">
-                 <div className="h-6 w-3/4 bg-slate-50 rounded-lg" />
-                 <div className="h-20 w-full bg-slate-50 rounded-lg" />
+                 <div className="h-6 w-3/4 bg-slate-50 dark:bg-slate-800/50 rounded-lg" />
+                 <div className="h-20 w-full bg-slate-50 dark:bg-slate-800/50 rounded-lg" />
                  <div className="flex gap-2">
                     <div className="h-8 w-20 bg-slate-50 rounded-lg" />
                     <div className="h-8 w-20 bg-slate-50 rounded-lg" />
@@ -189,12 +189,12 @@ export default function ContenidosPage() {
           ))}
         </div>
       ) : contents.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border border-dashed border-slate-200">
-          <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+        <div className="flex flex-col items-center justify-center py-32 bg-white dark:bg-slate-900 rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800">
+          <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 text-slate-200 dark:text-slate-700 rounded-full flex items-center justify-center mb-6">
             <Search className="w-10 h-10 text-slate-200" />
           </div>
-          <h3 className="text-2xl font-bold text-slate-800">No encontramos resultados</h3>
-          <p className="text-slate-500 font-medium mt-2 mb-8">Intenta ajustar los filtros o buscar con otros términos.</p>
+          <h3 className="text-2xl font-bold text-slate-800 dark:text-white">No encontramos resultados</h3>
+          <p className="text-slate-500 dark:text-slate-400 font-medium mt-2 mb-8">Intenta ajustar los filtros o buscar con otros términos.</p>
           <button 
             onClick={() => { setSearch(''); setTypeFilter(''); setDifficultyFilter('') }}
             className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
@@ -207,12 +207,12 @@ export default function ContenidosPage() {
           {contents.map((content) => (
             <div 
               key={content._id}
-              className="group relative bg-white rounded-[2.5rem] border border-slate-100 hover:border-indigo-100 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(79,70,229,0.1)] overflow-hidden flex flex-col"
+              className="group relative bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 hover:border-indigo-100 dark:hover:border-indigo-500/30 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(79,70,229,0.1)] dark:hover:shadow-none overflow-hidden flex flex-col"
             >
               {/* Card Image Placeholder / Pattern */}
               <div className={`h-48 relative overflow-hidden flex items-center justify-center ${
                 content.content_type === 'video' ? 'bg-slate-900' : 
-                content.content_type === 'pdf' ? 'bg-rose-50' : 'bg-indigo-50'
+                content.content_type === 'pdf' ? 'bg-rose-50 dark:bg-rose-500/10' : 'bg-indigo-50 dark:bg-indigo-500/10'
               }`}>
                 {/* Decorative background */}
                 <div className="absolute inset-0 opacity-10 group-hover:scale-110 transition-transform duration-700">
@@ -240,22 +240,22 @@ export default function ContenidosPage() {
                   <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${difficultyColor(content.difficulty_level || '')}`}>
                     {content.difficulty_level || 'General'}
                   </span>
-                  <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                     <ContentIcon type={content.content_type} className="w-3 h-3" />
                     {content.content_type}
                   </span>
                 </div>
 
-                <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-indigo-600 transition-colors line-clamp-2 leading-tight">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2 leading-tight">
                   {content.title}
                 </h3>
                 
-                <p className="text-slate-500 text-sm font-medium line-clamp-3 mb-6 leading-relaxed">
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium line-clamp-3 mb-6 leading-relaxed">
                   {content.description || 'Sin descripción disponible para este recurso educativo.'}
                 </p>
 
-                <div className="mt-auto pt-6 border-t border-slate-50 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-slate-400">
+                <div className="mt-auto pt-6 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
                     <Clock className="w-4 h-4" />
                     <span className="text-xs font-bold uppercase tracking-wider">
                       {formatDuration(content.duration_seconds) || '0 min'}
@@ -264,7 +264,7 @@ export default function ContenidosPage() {
                   
                   <Link 
                     href={`/contenidos/${content._id}`}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-slate-50 hover:bg-indigo-600 text-slate-700 hover:text-white font-bold text-xs rounded-xl transition-all group/btn"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-indigo-600 dark:hover:bg-indigo-500 text-slate-700 dark:text-slate-300 hover:text-white font-bold text-xs rounded-xl transition-all group/btn"
                   >
                     Ver Ahora
                     <ChevronRight className="w-3 h-3 transform group-hover/btn:translate-x-1 transition-transform" />

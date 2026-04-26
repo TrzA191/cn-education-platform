@@ -59,10 +59,10 @@ interface FailedAttempt {
 
 // --- Constants ---
 const severityColor: Record<string, string> = {
-  bajo: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-  medio: 'bg-amber-50 text-amber-700 border border-amber-200',
-  alto: 'bg-orange-50 text-orange-700 border border-orange-200',
-  critico: 'bg-rose-50 text-rose-700 border border-rose-200 shadow-sm',
+  bajo: 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+  medio: 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+  alto: 'bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20',
+  critico: 'bg-rose-50 text-rose-700 border border-rose-200 shadow-sm dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20',
 }
 
 const eventTypeIcon: Record<string, React.ReactNode> = {
@@ -88,22 +88,22 @@ const eventTypeLabel: Record<string, string> = {
 }
 
 const roleColor: Record<string, string> = {
-  admin: 'bg-rose-50 text-rose-700 border-rose-200',
-  teacher: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  student: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  admin: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20',
+  teacher: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20',
+  student: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
 }
 
 // --- Components ---
 function AdminStatCard({ label, value, icon, gradient }: { label: string, value: string | number, icon: React.ReactNode, gradient: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-6 shadow-sm hover:shadow-md transition-all">
       <div className="flex items-center gap-4">
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-br ${gradient} text-white shadow-sm`}>
           {icon}
         </div>
         <div>
-          <p className="text-2xl font-bold text-slate-800">{value}</p>
-          <p className="text-sm font-medium text-slate-500">{label}</p>
+          <p className="text-2xl font-bold text-slate-800 dark:text-white">{value}</p>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{label}</p>
         </div>
       </div>
     </div>
@@ -276,19 +276,19 @@ export default function AdminPage() {
     <div className="max-w-7xl mx-auto animate-in slide-in-from-bottom-4 duration-500 fade-in pb-12">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
              <ShieldCheck className="w-8 h-8 text-indigo-600" /> Administrative Control
           </h1>
-          <p className="text-slate-500 mt-1 font-medium ml-11">Gestión integral de identidad y auditoría de seguridad</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium ml-11">Gestión integral de identidad y auditoría de seguridad</p>
         </div>
       </div>
 
       {/* Main Category Tabs */}
-      <div className="flex gap-4 mb-8 border-b border-slate-200">
+      <div className="flex gap-4 mb-8 border-b border-slate-200 dark:border-slate-800">
         <button
           onClick={() => setMainCategory('management')}
           className={`flex items-center gap-2 px-6 py-3 font-bold text-sm transition-all relative ${
-            mainCategory === 'management' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-700'
+            mainCategory === 'management' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
           }`}
         >
           <Settings2 className="w-4 h-4" />
@@ -298,7 +298,7 @@ export default function AdminPage() {
         <button
           onClick={() => setMainCategory('security')}
           className={`flex items-center gap-2 px-6 py-3 font-bold text-sm transition-all relative ${
-            mainCategory === 'security' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-700'
+            mainCategory === 'security' ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
           }`}
         >
           <Shield className="w-4 h-4" />
@@ -310,16 +310,16 @@ export default function AdminPage() {
       {/* --- GESTIÓN DE CUENTAS --- */}
       {mainCategory === 'management' && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+          <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
             <div className="flex gap-8">
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Profesores</p>
-                <p className="text-2xl font-black text-indigo-600">{users.filter(u => u.role === 'teacher').length}</p>
+                <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{users.filter(u => u.role === 'teacher').length}</p>
               </div>
-              <div className="w-px h-10 bg-slate-100 self-center" />
+              <div className="w-px h-10 bg-slate-100 dark:bg-slate-800 self-center" />
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Estudiantes</p>
-                <p className="text-2xl font-black text-emerald-600">{users.filter(u => u.role === 'student').length}</p>
+                <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{users.filter(u => u.role === 'student').length}</p>
               </div>
             </div>
             <button
@@ -331,13 +331,13 @@ export default function AdminPage() {
             </button>
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-100">
-              <h2 className="font-bold text-slate-800 text-lg">Directorio de Gestión</h2>
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+              <h2 className="font-bold text-slate-800 dark:text-white text-lg">Directorio de Gestión</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50/50 text-xs text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-100">
+                <thead className="bg-slate-50/50 dark:bg-slate-800/50 text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-100 dark:border-slate-800">
                   <tr>
                     <th className="px-6 py-4 text-left">Usuario</th>
                     <th className="px-6 py-4 text-left">Email</th>
@@ -345,22 +345,22 @@ export default function AdminPage() {
                     <th className="px-6 py-4 text-right">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                   {loading ? (
                      [1,2,3,4,5].map(i => (
                         <tr key={i}>
-                          <td colSpan={4} className="px-6 py-4 animate-pulse"><div className="h-4 bg-slate-50 rounded" /></td>
+                          <td colSpan={4} className="px-6 py-4 animate-pulse"><div className="h-4 bg-slate-50 dark:bg-slate-800 rounded" /></td>
                         </tr>
                      ))
                   ) : users.map(u => (
-                    <tr key={u.id} className="hover:bg-slate-50/80 transition-colors group">
+                    <tr key={u.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors group">
                       <td className="px-6 py-4">
-                        <p className="font-bold text-slate-700">{u.username}</p>
+                        <p className="font-bold text-slate-700 dark:text-slate-200">{u.username}</p>
                         <p className="text-[10px] text-slate-400 font-mono">ID: #{u.id}</p>
                       </td>
-                      <td className="px-6 py-4 text-slate-500 font-medium">{u.email}</td>
+                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-medium">{u.email}</td>
                       <td className="px-6 py-4">
-                        <span className={`text-[10px] px-3 py-1 rounded-full font-bold capitalize border ${roleColor[u.role] || 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                        <span className={`text-[10px] px-3 py-1 rounded-full font-bold capitalize border ${roleColor[u.role] || 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}>
                           {u.role}
                         </span>
                       </td>
@@ -368,14 +368,14 @@ export default function AdminPage() {
                         <div className="flex gap-2 justify-end">
                           <button 
                             onClick={() => handleOpenEdit(u)}
-                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 rounded-lg transition-all"
                           >
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button 
                             disabled={Number(u.id) === Number(currentUser?.userId)}
                             onClick={() => handleDeleteRequest(u)}
-                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all disabled:opacity-30 disabled:hover:bg-transparent"
+                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-lg transition-all disabled:opacity-30 disabled:hover:bg-transparent"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -401,18 +401,18 @@ export default function AdminPage() {
           </div>
 
           {/* Sub-tabs inside Security */}
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-             <div className="p-1 px-6 pt-6 border-b border-slate-100 flex gap-6">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+             <div className="p-1 px-6 pt-6 border-b border-slate-100 dark:border-slate-800 flex gap-6">
                 {(['usuarios', 'logs', 'intentos'] as const).map(t => (
                   <button
                     key={t}
                     onClick={() => setSecurityTab(t)}
                     className={`pb-4 text-xs font-black uppercase tracking-widest transition-all relative ${
-                      securityTab === t ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'
+                      securityTab === t ? 'text-slate-800 dark:text-white' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
                     }`}
                   >
                     {t === 'logs' ? 'Bitácora' : t === 'intentos' ? 'Intentos Fallidos' : 'Visualización'}
-                    {securityTab === t && <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-800 rounded-t-full" />}
+                    {securityTab === t && <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-800 dark:bg-indigo-500 rounded-t-full" />}
                   </button>
                 ))}
              </div>
@@ -421,7 +421,7 @@ export default function AdminPage() {
                 {securityTab === 'usuarios' && (
                    <div className="overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead className="text-xs text-slate-400 border-b border-slate-50">
+                        <thead className="text-xs text-slate-400 dark:text-slate-500 border-b border-slate-50 dark:border-slate-800">
                           <tr>
                             <th className="px-4 py-3 text-left">Usuario</th>
                             <th className="px-4 py-3 text-left">Email</th>
@@ -429,13 +429,13 @@ export default function AdminPage() {
                             <th className="px-4 py-3 text-left">Miembro desde</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-50">
+                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                           {users.map(u => (
-                            <tr key={u.id}>
-                              <td className="px-4 py-3 font-bold text-slate-700">{u.username}</td>
-                              <td className="px-4 py-3 text-slate-500">{u.email}</td>
+                            <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                              <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-200">{u.username}</td>
+                              <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{u.email}</td>
                               <td className="px-4 py-3">
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${roleColor[u.role]}`}>
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${roleColor[u.role] || 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}>
                                   {u.role}
                                 </span>
                               </td>
@@ -456,7 +456,7 @@ export default function AdminPage() {
                         <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                         <input
                           type="text" placeholder="Filtrar eventos..."
-                          className="w-full pl-10 pr-4 py-2 text-sm border border-slate-100 bg-slate-50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                          className="w-full pl-10 pr-4 py-2 text-sm border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                           value={search} onChange={e => setSearch(e.target.value)}
                         />
                       </div>
@@ -464,7 +464,7 @@ export default function AdminPage() {
                         {['todos', 'bajo', 'medio', 'alto', 'critico'].map(s => (
                           <button key={s} onClick={() => setSeverityFilter(s)}
                             className={`px-3 py-1 rounded-lg text-[10px] font-bold capitalize transition-all ${
-                              severityFilter === s ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500'
+                              severityFilter === s ? 'bg-slate-800 dark:bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                             }`}>
                             {s}
                           </button>
@@ -473,7 +473,7 @@ export default function AdminPage() {
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs">
-                        <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                        <thead className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold border-b border-slate-100 dark:border-slate-700">
                           <tr>
                             <th className="px-4 py-3 text-left uppercase">Timeline</th>
                             <th className="px-4 py-3 text-left uppercase">Evento</th>
@@ -481,23 +481,23 @@ export default function AdminPage() {
                             <th className="px-4 py-3 text-left uppercase">Severidad</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-50">
+                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                           {filteredLogs.map(l => (
-                            <tr key={l.id} className="hover:bg-slate-50/50">
+                            <tr key={l.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                               <td className="px-4 py-3">
-                                <p className="font-bold text-slate-700">{new Date(l.created_at).toLocaleTimeString()}</p>
-                                <p className="text-[10px] text-slate-400">{new Date(l.created_at).toLocaleDateString()}</p>
+                                <p className="font-bold text-slate-700 dark:text-slate-200">{new Date(l.created_at).toLocaleTimeString()}</p>
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500">{new Date(l.created_at).toLocaleDateString()}</p>
                               </td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">
                                   {eventTypeIcon[l.event_type] || <ShieldHalf className="w-4 h-4 text-slate-400" />}
                                   <div>
-                                    <p className="font-bold text-slate-800 leading-none mb-1">{eventTypeLabel[l.event_type] || l.event_type}</p>
-                                    <p className="text-[10px] text-slate-400 font-medium truncate max-w-[200px]">{l.description}</p>
+                                    <p className="font-bold text-slate-800 dark:text-white leading-none mb-1">{eventTypeLabel[l.event_type] || l.event_type}</p>
+                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate max-w-[200px]">{l.description}</p>
                                   </div>
                                 </div>
                               </td>
-                              <td className="px-4 py-3 font-mono text-slate-400">{l.ip_address}</td>
+                              <td className="px-4 py-3 font-mono text-slate-400 dark:text-slate-500">{l.ip_address}</td>
                               <td className="px-4 py-3">
                                 <span className={`px-2 py-0.5 rounded-md font-black text-[9px] uppercase tracking-tighter ${severityColor[l.severity]}`}>
                                   {l.severity}
@@ -514,19 +514,19 @@ export default function AdminPage() {
                 {securityTab === 'intentos' && (
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
-                      <thead className="text-slate-400 border-b border-slate-50">
+                      <thead className="text-slate-400 dark:text-slate-500 border-b border-slate-50 dark:border-slate-800">
                         <tr>
                           <th className="px-4 py-3 text-left">Email Objetivo</th>
                           <th className="px-4 py-3 text-left">Origen (IP)</th>
                           <th className="px-4 py-3 text-left">Momento</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                         {attempts.map(a => (
-                          <tr key={a.id} className="bg-rose-50/10">
-                            <td className="px-4 py-3 font-bold text-rose-700">{a.email}</td>
-                            <td className="px-4 py-3 text-slate-500 font-mono">{a.ip_address}</td>
-                            <td className="px-4 py-3 text-slate-400">{new Date(a.attempted_at).toLocaleString()}</td>
+                          <tr key={a.id} className="bg-rose-50/10 dark:bg-rose-500/5 hover:bg-rose-50/20 dark:hover:bg-rose-500/10 transition-colors">
+                            <td className="px-4 py-3 font-bold text-rose-700 dark:text-rose-400">{a.email}</td>
+                            <td className="px-4 py-3 text-slate-500 dark:text-slate-400 font-mono">{a.ip_address}</td>
+                            <td className="px-4 py-3 text-slate-400 dark:text-slate-500">{new Date(a.attempted_at).toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -541,13 +541,13 @@ export default function AdminPage() {
       {/* --- CRUD MODAL --- */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-300">
-            <div className="bg-slate-50 p-6 border-b border-slate-100">
-               <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300">
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-6 border-b border-slate-100 dark:border-slate-800">
+               <h3 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
                   {modalType === 'add' ? <UserPlus className="w-5 h-5 text-indigo-600" /> : <Edit3 className="w-5 h-5 text-indigo-600" />}
                   {modalType === 'add' ? 'Añadir Nuevo Usuario' : 'Editar Usuario'}
                </h3>
-               <p className="text-xs font-medium text-slate-500 mt-1">Completa los datos para el acceso a la plataforma.</p>
+               <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">Completa los datos para el acceso a la plataforma.</p>
             </div>
             
             <form onSubmit={handleSubmit} className="p-8 space-y-5">
@@ -618,7 +618,7 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-4 py-3 bg-white hover:bg-slate-50 text-slate-600 font-bold rounded-xl text-sm border border-slate-200 transition-all"
+                  className="flex-1 px-4 py-3 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl text-sm border border-slate-200 dark:border-slate-700 transition-all"
                 >
                   Cancelar
                 </button>
@@ -643,26 +643,26 @@ export default function AdminPage() {
       {/* --- REUSABLE CONFIRMATION MODAL --- */}
       {confirmModal.open && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-           <div className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden border border-slate-100 animate-in zoom-in-95 slide-in-from-bottom-2 duration-300">
+           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 slide-in-from-bottom-2 duration-300">
               <div className="p-8 text-center">
                  <div className={`w-20 h-20 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-sm ${
-                   confirmModal.type === 'success' ? 'bg-emerald-50 text-emerald-500' :
-                   confirmModal.type === 'delete' ? 'bg-rose-50 text-rose-500' : 'bg-amber-50 text-amber-500'
+                   confirmModal.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500' :
+                   confirmModal.type === 'delete' ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-500' : 'bg-amber-50 dark:bg-amber-500/10 text-amber-500'
                  }`}>
                     {confirmModal.type === 'success' ? <UserCheck className="w-10 h-10" /> :
                      confirmModal.type === 'delete' ? <AlertTriangle className="w-10 h-10" /> : <ShieldAlert className="w-10 h-10" />}
                  </div>
-                 <h4 className="text-xl font-black text-slate-900 mb-2">{confirmModal.title}</h4>
-                 <p className="text-sm font-medium text-slate-500 leading-relaxed px-2">
+                 <h4 className="text-xl font-black text-slate-900 dark:text-white mb-2">{confirmModal.title}</h4>
+                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400 leading-relaxed px-2">
                     {confirmModal.message}
                  </p>
               </div>
-              <div className="p-6 bg-slate-50/50 border-t border-slate-50 flex gap-3">
+              <div className="p-6 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-50 dark:border-slate-800 flex gap-3">
                  {confirmModal.type === 'delete' ? (
                    <>
                     <button 
                       onClick={() => setConfirmModal({...confirmModal, open: false})}
-                      className="flex-1 py-3 px-4 bg-white border border-slate-200 text-slate-600 font-bold rounded-2xl text-sm hover:bg-slate-50 transition-all"
+                      className="flex-1 py-3 px-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-2xl text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all"
                     >
                       Cancelar
                     </button>
