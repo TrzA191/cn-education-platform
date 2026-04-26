@@ -428,8 +428,8 @@ export default function RutaDetallePage({ params }: { params: { id: string } }) 
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto space-y-4">
-        <div className="h-8 w-48 bg-gray-100 rounded-xl animate-pulse" />
-        <div className="h-40 bg-gray-100 rounded-2xl animate-pulse" />
+        <div className="h-8 w-48 bg-gray-100 dark:bg-slate-800 rounded-xl animate-pulse" />
+        <div className="h-40 bg-gray-100 dark:bg-slate-800 rounded-2xl animate-pulse" />
       </div>
     )
   }

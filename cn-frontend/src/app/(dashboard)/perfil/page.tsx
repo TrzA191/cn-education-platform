@@ -66,7 +66,7 @@ export default function PerfilPage() {
 
 
   return (
-    <div className="max-w-2xl mx-auto pb-12">
+    <div className="max-w-2xl mx-auto pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Mi perfil</h1>
         <p className="text-gray-500 dark:text-gray-400 mt-1">Actualiza tu información personal y preferencias</p>
@@ -141,7 +141,7 @@ export default function PerfilPage() {
 
         {loading ? (
           <div className="space-y-4">
-            {[1,2,3,4].map(i => <div key={i} className="h-10 bg-gray-50 rounded-xl animate-pulse" />)}
+            {[1,2,3,4].map(i => <div key={i} className="h-10 bg-gray-50 dark:bg-slate-800 rounded-xl animate-pulse" />)}
           </div>
         ) : (
           <form onSubmit={handleSave} className="space-y-4">

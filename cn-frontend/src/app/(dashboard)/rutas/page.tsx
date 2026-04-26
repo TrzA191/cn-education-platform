@@ -315,7 +315,7 @@ export default function RutasPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[1,2,3,4].map(i => (
-            <div key={i} className="h-40 bg-white rounded-3xl border border-slate-100 animate-pulse" />
+            <div key={i} className="h-40 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 animate-pulse" />
           ))}
         </div>
       ) : paths.length === 0 ? (
@@ -537,7 +537,7 @@ export default function RutasPage() {
                 </p>
                 {loadingContents ? (
                   <div className="space-y-2">
-                    {[1,2,3].map(i => <div key={i} className="h-12 bg-slate-50 rounded-xl animate-pulse" />)}
+                    {[1,2,3].map(i => <div key={i} className="h-12 bg-slate-50 dark:bg-slate-800 rounded-xl animate-pulse" />)}
                   </div>
                 ) : pathContents.length === 0 ? (
                   <p className="text-sm text-slate-400 text-center py-4">Aún no hay módulos en esta ruta</p>
@@ -578,7 +578,7 @@ export default function RutasPage() {
                 </div>
                 {loadingContents ? (
                   <div className="space-y-2">
-                    {[1,2].map(i => <div key={i} className="h-12 bg-slate-50 rounded-xl animate-pulse" />)}
+                    {[1,2,3].map(i => <div key={i} className="h-12 bg-slate-50 dark:bg-slate-800 rounded-xl animate-pulse" />)}
                   </div>
                 ) : filteredContents.length === 0 ? (
                   <p className="text-sm text-slate-400 text-center py-4">
