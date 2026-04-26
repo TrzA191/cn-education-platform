@@ -16,7 +16,14 @@ export const createContent = async (req: Request, res: Response): Promise<void> 
     }
 
     if (req.file) {
-      cdn_url = await uploadFileToBlob(req.file.buffer, req.file.originalname, req.file.mimetype)
+      try {
+        cdn_url = await uploadFileToBlob(req.file.buffer, req.file.originalname, req.file.mimetype);
+        console.log("URL de Azure generada:", cdn_url);
+      } catch (azureErr: any) {
+        console.error("ERROR EN AZURE BLOB STORAGE:", azureErr);
+        res.status(500).json({ error: "Fallo al subir a Azure: " + (azureErr.message || azureErr) });
+        return;
+      }
     }
 
     let parsedTags = tags;

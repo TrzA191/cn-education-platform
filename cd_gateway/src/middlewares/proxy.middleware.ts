@@ -17,9 +17,11 @@ export const proxy = (baseUrl: string) => {
           'x-forwarded-user-agent': req.headers['user-agent'],
           'x-captcha-verified': req.headers['x-captcha-verified'], // ← agregar
         },
-        data: req.body,
+        data: req.headers['content-type']?.includes('multipart/form-data') ? req : req.body,
         params: req.query,
         validateStatus: () => true,
+        maxBodyLength: Infinity, // Importante para subir videos pesados
+        maxContentLength: Infinity,
       }
 
       const response = await axios(config)
