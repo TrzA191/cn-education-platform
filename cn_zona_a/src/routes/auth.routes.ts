@@ -3,11 +3,14 @@ import { register, login, me, requestVerificationCode } from "../controllers/aut
 import { auth } from "../middlewares/auth.middleware";
 import { requiresCaptcha } from '../services/security.service'
 
+import { validate } from "../middlewares/validate.middleware";
+import { registerSchema, loginSchema, verificationCodeSchema } from "../schemas/auth.schemas";
+
 const router = Router();
 
-router.post("/send-verification-code", requestVerificationCode);
-router.post("/register", register);
-router.post("/login", login);
+router.post("/send-verification-code", validate(verificationCodeSchema), requestVerificationCode);
+router.post("/register", validate(registerSchema), register);
+router.post("/login", validate(loginSchema), login);
 router.get("/me", auth(), me);
 
 

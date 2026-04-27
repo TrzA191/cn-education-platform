@@ -4,7 +4,7 @@ import { Comment, ContentRating } from '../models/CommentRating'
 export const addComment = async (req: Request, res: Response): Promise<void> => {
   try {
     const comment = await Comment.create({
-      user_id: req.user!.userId,
+      user_id: req.user!.id,
       content_id: req.body.content_id,
       body: req.body.body,
     })
@@ -28,7 +28,7 @@ export const getComments = async (req: Request, res: Response): Promise<void> =>
 export const addRating = async (req: Request, res: Response): Promise<void> => {
   try {
     const rating = await ContentRating.findOneAndUpdate(
-      { user_id: req.user!.userId, content_id: req.body.content_id },
+      { user_id: req.user!.id, content_id: req.body.content_id },
       { rating_stars: req.body.rating_stars },
       { upsert: true, new: true }
     )

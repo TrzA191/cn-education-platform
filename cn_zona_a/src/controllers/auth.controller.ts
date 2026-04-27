@@ -26,10 +26,7 @@ const MAX_FAILED_ATTEMPTS = 3
 // ─── CODIGO DE VERIFICACION ───────────────────────────────────────────────────
 export async function requestVerificationCode(req: Request, res: Response) {
   const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ error: 'El correo electrónico es requerido' });
-  }
-
+  
   try {
     // Generar OTP de 6 dígitos
     const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -68,10 +65,6 @@ export async function register(req: Request, res: Response) {
   const { username, email, password, role, verificationCode } = req.body
   const ipAddress = req.ip ?? 'unknown'
   const userAgent = req.headers['user-agent'] ?? 'unknown'
-
-  if (!verificationCode) {
-    return res.status(400).json({ error: 'Se requiere un código de verificación (verificationCode)' });
-  }
 
   try {
     // Verificar el código
@@ -136,7 +129,7 @@ export async function register(req: Request, res: Response) {
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
 export async function login(req: Request, res: Response) {
-  const { email, password } = req.body
+  const { email, password, captchaToken } = req.body
   const ipAddress = req.ip ?? 'unknown'
   const userAgent = req.headers['user-agent'] ?? 'unknown'
 

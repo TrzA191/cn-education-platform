@@ -23,7 +23,7 @@ export const submitResult = async (req: Request, res: Response): Promise<void> =
     const passed = score >= assessment.passing_score
 
     const result = await UserAssessmentResult.create({
-      user_id: req.user!.userId,
+      user_id: req.user!.id,
       assessment_id: assessment._id,
       score,
       passed,
