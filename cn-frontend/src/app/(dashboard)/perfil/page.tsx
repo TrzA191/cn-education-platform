@@ -206,6 +206,25 @@ export default function PerfilPage() {
         )}
       </div>
 
+      {/* Seguridad */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 p-6 mt-6">
+        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Seguridad de la cuenta</h2>
+        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+          <div>
+            <h3 className="text-sm font-medium text-gray-900 dark:text-white">Contraseña</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Protege tu cuenta con una contraseña segura.
+            </p>
+          </div>
+          <button 
+            onClick={() => alert('Para cambiar tu contraseña por seguridad, cierra sesión y utiliza la opción "¿Olvidaste tu contraseña?" en la pantalla de inicio.')}
+            className="px-4 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors"
+          >
+            Cambiar
+          </button>
+        </div>
+      </div>
+
 
     </div>
   )

@@ -37,3 +37,41 @@ export async function sendVerificationCode(email: string, code: string) {
     return { success: false, error: err };
   }
 }
+
+export async function sendPasswordResetCode(email: string, code: string) {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptions = {
+      from: `"CN Education" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Recuperación de Contraseña - CN Education',
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+          <h2 style="color: #333;">Recuperación de Contraseña</h2>
+          <p>Hola,</p>
+          <p>Hemos recibido una solicitud para restablecer tu contraseña. Usa el siguiente código de seguridad:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #E53E3E;">
+              ${code}
+            </span>
+          </div>
+          <p>Este código expirará en 10 minutos.</p>
+          <p><strong>Si no solicitaste este cambio, ignora este correo. Tu cuenta está segura.</strong></p>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    return { success: true, data: info };
+  } catch (err) {
+    console.error('[sendPasswordResetCode] Excepción con Nodemailer:', err);
+    return { success: false, error: err };
+  }
+}

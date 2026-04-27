@@ -23,3 +23,17 @@ export const loginSchema = z.object({
     captchaToken: z.string().optional(),
   }),
 });
+
+export const forgotPasswordSchema = z.object({
+  body: z.object({
+    email: z.string().email('Debe ser un correo electrónico válido'),
+  }),
+});
+
+export const resetPasswordSchema = z.object({
+  body: z.object({
+    email: z.string().email('Debe ser un correo electrónico válido'),
+    code: z.string().length(6, 'El código debe tener exactamente 6 dígitos'),
+    newPassword: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').max(100, 'La contraseña es demasiado larga'),
+  }),
+});

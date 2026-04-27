@@ -8,7 +8,7 @@ import CaptchaGate from '@/components/CaptchaGate'
 import { GraduationCap, ArrowRight, ShieldCheck, Mail } from 'lucide-react'
 import { useCaptchaRequired } from '@/hooks/useCaptchaRequired'
 
-type Tab  = 'login' | 'register'
+type Tab  = 'login' | 'register' | 'recovery'
 type Role = 'student' | 'teacher'
 
 // Dominios de correo permitidos
@@ -28,6 +28,7 @@ export default function LoginPage() {
   const [tab,              setTab]              = useState<Tab>('login')
   const [loading,          setLoading]          = useState(false)
   const [error,            setError]            = useState('')
+  const [successMsg,       setSuccessMsg]       = useState('')
   const [captchaToken,    setCaptchaToken]      = useState<string | null>(null)
   const [forceShowCaptcha, setForceShowCaptcha] = useState(false)
 
@@ -38,6 +39,9 @@ export default function LoginPage() {
 
   const [registerStep, setRegisterStep] = useState<1 | 2>(1)
   const [verificationCode, setVerificationCode] = useState('')
+
+  const [recoveryStep, setRecoveryStep] = useState<1 | 2>(1)
+  const [recoveryData, setRecoveryData] = useState({ email: '', code: '', newPassword: '', confirmPassword: '' })
 
   // Errores de validación del formulario de registro
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -79,6 +83,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSuccessMsg('')
     setLoading(true)
     try {
       const headers: Record<string, string> = {}
@@ -151,6 +156,52 @@ export default function LoginPage() {
     }
   }
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSuccessMsg('')
+    setLoading(true)
+    try {
+      await api.post('/api/auth/forgot-password', { email: recoveryData.email })
+      setRecoveryStep(2)
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Error al solicitar recuperación')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSuccessMsg('')
+    if (recoveryData.newPassword !== recoveryData.confirmPassword) {
+      setError('Las contraseñas no coinciden')
+      return
+    }
+    const failedRules = passwordRules.filter(r => !r.test(recoveryData.newPassword))
+    if (failedRules.length > 0) {
+      setError('La contraseña no cumple los requisitos')
+      return
+    }
+    setLoading(true)
+    try {
+      await api.post('/api/auth/reset-password', {
+        email: recoveryData.email,
+        code: recoveryData.code,
+        newPassword: recoveryData.newPassword
+      })
+      setTab('login')
+      setRecoveryStep(1)
+      setRecoveryData({ email: '', code: '', newPassword: '', confirmPassword: '' })
+      setSuccessMsg('Contraseña actualizada con éxito. Por favor, inicia sesión.')
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Error al restablecer contraseña')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const pwd = registerData.password
 
   return (
@@ -165,20 +216,28 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 p-8">
-          <div className="flex bg-slate-100 dark:bg-slate-800/50 rounded-xl p-1.5 mb-8">
-            <button
-              onClick={() => { setTab('login'); setError(''); setCaptchaToken(null); setForceShowCaptcha(false); setRegisterStep(1); }}
-              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
-                tab === 'login' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}
-            >Log in</button>
-            <button
-              onClick={() => { setTab('register'); setError(''); setFieldErrors({}); setRegisterStep(1); }}
-              className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
-                tab === 'register' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}
-            >Sign up</button>
-          </div>
+          {tab !== 'recovery' && (
+            <div className="flex bg-slate-100 dark:bg-slate-800/50 rounded-xl p-1.5 mb-8">
+              <button
+                onClick={() => { setTab('login'); setError(''); setSuccessMsg(''); setCaptchaToken(null); setForceShowCaptcha(false); setRegisterStep(1); }}
+                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
+                  tab === 'login' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >Log in</button>
+              <button
+                onClick={() => { setTab('register'); setError(''); setSuccessMsg(''); setFieldErrors({}); setRegisterStep(1); }}
+                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
+                  tab === 'register' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >Sign up</button>
+            </div>
+          )}
+
+          {successMsg && (
+            <div className="mb-4 p-3 bg-green-50 dark:bg-green-500/10 border border-green-100 dark:border-green-500/20 rounded-lg">
+              <p className="text-sm text-green-600 dark:text-green-400">{successMsg}</p>
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-lg">
@@ -217,6 +276,11 @@ export default function LoginPage() {
                     className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 placeholder-slate-400 dark:placeholder-slate-500 transition-all shadow-sm"
                     placeholder="••••••••"
                   />
+                </div>
+                <div className="flex justify-end mt-2">
+                  <button type="button" onClick={() => { setTab('recovery'); setError(''); setSuccessMsg(''); }} className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                    ¿Olvidaste tu contraseña?
+                  </button>
                 </div>
               </div>
               <button
@@ -398,6 +462,95 @@ export default function LoginPage() {
                   className="w-2/3 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 disabled:from-indigo-300 disabled:to-indigo-300 text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-md shadow-indigo-500/30 hover:shadow-lg"
                 >
                   {loading ? 'Verificando...' : 'Verificar e Ingresar'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ── FORMULARIO RECUPERACIÓN ── */}
+          {tab === 'recovery' && recoveryStep === 1 && (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="text-center mb-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Recuperar Contraseña</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Ingresa tu correo para recibir un código de acceso seguro.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Correo electrónico</label>
+                <input
+                  type="email" required
+                  value={recoveryData.email}
+                  onChange={e => setRecoveryData({ ...recoveryData, email: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400 dark:placeholder-slate-500"
+                  placeholder="tu@correo.com"
+                />
+              </div>
+              <button
+                type="submit" disabled={loading}
+                className="w-full mt-2 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-md shadow-indigo-500/30"
+              >
+                {loading ? 'Enviando...' : 'Enviar Código'}
+              </button>
+            </form>
+          )}
+
+          {tab === 'recovery' && recoveryStep === 2 && (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="text-center mb-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Crear Nueva Contraseña</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Ingresa el código que enviamos a {recoveryData.email}.</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código de verificación</label>
+                <input
+                  type="text" required maxLength={6}
+                  value={recoveryData.code}
+                  onChange={e => setRecoveryData({ ...recoveryData, code: e.target.value.replace(/\D/g, '') })}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-center text-2xl tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400"
+                  placeholder="000000"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nueva Contraseña</label>
+                <input
+                  type="password" required
+                  value={recoveryData.newPassword}
+                  onChange={e => setRecoveryData({ ...recoveryData, newPassword: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400"
+                  placeholder="Mínimo 8 caracteres"
+                />
+                {recoveryData.newPassword.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {passwordRules.map(rule => (
+                      <div key={rule.label} className="flex items-center gap-2">
+                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                          rule.test(recoveryData.newPassword) ? 'bg-green-500' : 'bg-gray-200 dark:bg-slate-700'
+                        }`}></div>
+                        <span className={`text-xs ${rule.test(recoveryData.newPassword) ? 'text-green-600' : 'text-gray-400'}`}>{rule.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirmar Contraseña</label>
+                <input
+                  type="password" required
+                  value={recoveryData.confirmPassword}
+                  onChange={e => setRecoveryData({ ...recoveryData, confirmPassword: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400"
+                  placeholder="Repite tu contraseña"
+                />
+              </div>
+
+              <div className="flex gap-3 mt-4">
+                <button type="button" onClick={() => setRecoveryStep(1)} disabled={loading} className="w-1/3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold py-3 rounded-xl text-sm transition-colors border border-slate-200 dark:border-slate-700">
+                  Volver
+                </button>
+                <button type="submit" disabled={loading || recoveryData.code.length !== 6} className="w-2/3 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-md">
+                  {loading ? 'Restableciendo...' : 'Restablecer'}
                 </button>
               </div>
             </form>

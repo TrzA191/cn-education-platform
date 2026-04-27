@@ -109,3 +109,17 @@ Registro cronológico e histórico de modificaciones en el monorepo.
 - **Rediseño del Formulario de Carga:** Se eliminó el campo de URL de YouTube en `/subir/page.tsx`.
 - **UI Drag & Drop:** Implementada una caja de subida interactiva utilizando íconos de `lucide-react` para aceptar y previsualizar archivos locales.
 - **Petición con FormData:** Refactorización de `handleSubmit` para empacar todos los campos de texto junto con el archivo físico dentro de una instancia nativa `FormData`, asegurando compatibilidad con el nuevo backend.
+
+## [2026-04-26] Seguridad Estricta, Zod y Restablecimiento de Credenciales
+**Carpeta: `cn_zona_a` & `cn_zona_b` (Backend APIs)**
+- **Aduana de Datos (Zod):** Instalación de la librería `zod`. Implementación de middlewares `validate.middleware.ts` para interceptar datos corruptos o maliciosos antes de tocar los controladores.
+- **Esquemas Estrictos:** Creación de `auth.schemas.ts` y `content.schemas.ts` para aplicar reglas estrictas de tipo, tamaño y formato en correos, roles, títulos y descripciones de video.
+
+**Carpeta: `cn_zona_a` (Identidad y Seguridad)**
+- **Flujo "Forgot Password":** Nuevo endpoint `POST /forgot-password` que genera un código OTP de recuperación y lo envía por correo mediante Nodemailer utilizando la cuenta `pathly.education@gmail.com`.
+- **Flujo "Reset Password":** Nuevo endpoint `POST /reset-password` que valida el OTP, hashea la nueva contraseña y actualiza `password_changed_at`.
+- **Cierre de Sesiones Activas:** Al restablecer la contraseña de forma exitosa, el sistema localiza y revoca (`is_revoked = 1`) automáticamente todas las sesiones activas en `active_sessions` para eliminar accesos previos de posibles atacantes.
+- **API REST "Nivel Pro":** Refactorización limpia del enrutador de autenticación. `/send-verification-code` pasó a ser `/verify` (manteniendo alias).
+
+**Carpeta: `cd_gateway` (Gateway API)**
+- **Exposición Segura:** Actualizadas las reglas de proxy en `gateway.routes.ts` para enrutar los nuevos flujos de recuperación (`/forgot-password`, `/reset-password`) hacia Zona A.

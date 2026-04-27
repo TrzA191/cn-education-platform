@@ -9,7 +9,7 @@ import bcrypt from 'bcryptjs'
 import jwt, { SignOptions } from 'jsonwebtoken'
 import crypto from 'crypto'
 import { pool } from '../lib/db'
-import { sendVerificationCode } from '../lib/email'
+import { sendVerificationCode, sendPasswordResetCode } from '../lib/email'
 import {
   logSecurityEvent,
   recordFailedAttempt,
@@ -82,6 +82,20 @@ export async function register(req: Request, res: Response) {
 
     const hash = await bcrypt.hash(password, 12)
 
+    // Verificar duplicados antes de insertar para dar un mensaje exacto
+    const duplicateCheck = await pool.request()
+      .input('username', username)
+      .input('email', email)
+      .query(`SELECT username, email FROM users WHERE username = @username OR email = @email`);
+    
+    if (duplicateCheck.recordset.length > 0) {
+      const isEmail = duplicateCheck.recordset.some(r => r.email === email);
+      const isUser = duplicateCheck.recordset.some(r => r.username === username);
+      if (isEmail && isUser) return res.status(409).json({ error: 'El correo y el usuario ya están registrados.' });
+      if (isEmail) return res.status(409).json({ error: 'Este correo electrónico ya está registrado.' });
+      if (isUser) return res.status(409).json({ error: 'El nombre de usuario ya está en uso. Elige otro.' });
+    }
+
     const result = await pool.request()
       .input('username', username)
       .input('email',    email)
@@ -118,10 +132,6 @@ export async function register(req: Request, res: Response) {
     res.json({ message: 'Usuario creado correctamente' })
 
   } catch (err: any) {
-    // Detectar duplicado de email/username
-    if (err.number === 2627 || err.number === 2601) {
-      return res.status(409).json({ error: 'El correo o usuario ya está registrado' })
-    }
     console.error('[register]', err)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
@@ -309,5 +319,131 @@ export async function me(req: Request, res: Response) {
   } catch (err) {
     console.error('[me]', err)
     res.status(500).json({ error: 'Error interno del servidor' })
+  }
+}
+
+// ─── FORGOT PASSWORD ─────────────────────────────────────────────────────────
+export async function forgotPassword(req: Request, res: Response) {
+  const { email } = req.body;
+
+  try {
+    // Verificar si el usuario existe
+    const userResult = await pool.request()
+      .input('email', email)
+      .query(`SELECT id FROM users WHERE email = @email`);
+
+    if (userResult.recordset.length === 0) {
+      // Por seguridad, no revelamos si el correo existe o no a un atacante potencial.
+      res.json({ message: 'Si el correo existe, se ha enviado un código de recuperación.' });
+      return;
+    }
+
+    // Generar OTP de 6 dígitos
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+
+    // Eliminar códigos anteriores
+    await pool.request()
+      .input('email', email)
+      .query(`DELETE FROM verification_codes WHERE email = @email`);
+
+    // Insertar nuevo
+    await pool.request()
+      .input('email', email)
+      .input('code', code)
+      .input('expires_at', expiresAt)
+      .query(`
+        INSERT INTO verification_codes (email, code, expires_at) 
+        VALUES (@email, @code, @expires_at)
+      `);
+
+    // Enviar correo
+    const emailResult = await sendPasswordResetCode(email, code);
+    if (!emailResult.success) {
+      res.status(500).json({ error: 'No se pudo enviar el correo de recuperación' });
+      return;
+    }
+
+    res.json({ message: 'Si el correo existe, se ha enviado un código de recuperación.' });
+  } catch (err) {
+    console.error('[forgotPassword]', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+}
+
+// ─── RESET PASSWORD ──────────────────────────────────────────────────────────
+export async function resetPassword(req: Request, res: Response) {
+  const { email, code, newPassword } = req.body;
+  const ipAddress = req.ip ?? 'unknown'
+  const userAgent = req.headers['user-agent'] ?? 'unknown'
+
+  try {
+    // 1. Verificar el código
+    const verifyResult = await pool.request()
+      .input('email', email)
+      .input('code', code)
+      .query(`
+        SELECT * FROM verification_codes 
+        WHERE email = @email AND code = @code AND expires_at > GETDATE()
+      `);
+
+    if (verifyResult.recordset.length === 0) {
+      res.status(400).json({ error: 'Código de recuperación inválido o expirado' });
+      return;
+    }
+
+    // 2. Verificar el usuario
+    const userResult = await pool.request()
+      .input('email', email)
+      .query(`SELECT id FROM users WHERE email = @email`);
+
+    if (userResult.recordset.length === 0) {
+      res.status(404).json({ error: 'Usuario no encontrado' });
+      return;
+    }
+    const userId = userResult.recordset[0].id;
+
+    // 3. Hashear nueva contraseña
+    const hash = await bcrypt.hash(newPassword, 12);
+
+    // 4. Actualizar contraseña y password_changed_at
+    await pool.request()
+      .input('email', email)
+      .input('password_hash', hash)
+      .query(`
+        UPDATE users 
+        SET password_hash = @password_hash, password_changed_at = GETDATE()
+        WHERE email = @email
+      `);
+
+    // 5. Inhabilitar sesiones activas antiguas (Cierre de sesión automático)
+    await pool.request()
+      .input('user_id', userId)
+      .query(`
+        UPDATE active_sessions 
+        SET is_revoked = 1 
+        WHERE user_id = @user_id
+      `);
+
+    // 6. Eliminar el código usado
+    await pool.request()
+      .input('email', email)
+      .query(`DELETE FROM verification_codes WHERE email = @email`);
+
+    // 7. Log de seguridad
+    await logSecurityEvent({
+      user_id: userId,
+      event_type: 'password_changed',
+      description: 'Contraseña restablecida correctamente. Sesiones previas revocadas.',
+      ip_address: ipAddress,
+      user_agent: userAgent,
+      severity: 'medio',
+      status: 'cerrado'
+    });
+
+    res.json({ message: 'Contraseña restablecida exitosamente. Todas las sesiones anteriores han sido cerradas.' });
+  } catch (err) {
+    console.error('[resetPassword]', err);
+    res.status(500).json({ error: 'Error interno del servidor al restablecer contraseña' });
   }
 }

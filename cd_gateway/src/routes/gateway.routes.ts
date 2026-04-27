@@ -12,8 +12,11 @@ const ZONA_B = process.env.ZONA_B_URL!
 // Rutas públicas de auth (no requieren token)
 router.post('/auth/register', proxy(ZONA_A))
 router.post('/auth/login', proxy(ZONA_A))
-router.post('/auth/send-verification-code', proxy(ZONA_A))
-router.get('/auth/captcha-required', proxy(ZONA_A))  // ← agregar esta línea
+router.post('/auth/verify', proxy(ZONA_A))
+router.post('/auth/forgot-password', proxy(ZONA_A))
+router.post('/auth/reset-password', proxy(ZONA_A))
+router.post('/auth/send-verification-code', proxy(ZONA_A)) // Alias retrocompatible
+router.get('/auth/captcha-required', proxy(ZONA_A))
 
 
 // Rutas protegidas de auth
