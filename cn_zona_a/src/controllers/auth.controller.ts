@@ -258,8 +258,7 @@ export async function login(req: Request, res: Response) {
 
     // 6. Login exitoso — generar token
     const secret  = process.env.JWT_SECRET as string
-    const expires = process.env.JWT_EXPIRES_IN || '7d'
-    // CORRECCIÓN APLICADA: Forzamos el tipo a any para evitar el error de StringValue
+    const expires = process.env.JWT_EXPIRES || '1h'
     const options: SignOptions = { expiresIn: expires as any }
 
     const token = jwt.sign(
@@ -270,7 +269,18 @@ export async function login(req: Request, res: Response) {
 
     // 7. Registrar sesión activa (hash del token para no guardar texto plano)
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex')
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    
+    // Calcular fecha de expiración para la DB basada en el string (1h, 7d, etc)
+    const parseMs = (exp: string) => {
+      const val = parseInt(exp);
+      if (exp.endsWith('h')) return val * 60 * 60 * 1000;
+      if (exp.endsWith('d')) return val * 24 * 60 * 60 * 1000;
+      if (exp.endsWith('m')) return val * 60 * 1000;
+      if (exp.endsWith('s')) return val * 1000;
+      return 7 * 24 * 60 * 60 * 1000; // default 7d
+    };
+
+    const expiresAt = new Date(Date.now() + parseMs(expires))
 
     await registerSession({ userId: user.id, tokenHash, ipAddress, userAgent, expiresAt })
     await updateUserOnLogin({ userId: user.id, success: true })
@@ -432,11 +442,11 @@ export async function resetPassword(req: Request, res: Response) {
 
     // 7. Log de seguridad
     await logSecurityEvent({
-      user_id: userId,
-      event_type: 'password_changed',
+      userId: userId,
+      eventType: 'password_changed',
       description: 'Contraseña restablecida correctamente. Sesiones previas revocadas.',
-      ip_address: ipAddress,
-      user_agent: userAgent,
+      ipAddress: ipAddress,
+      userAgent: userAgent,
       severity: 'medio',
       status: 'cerrado'
     });

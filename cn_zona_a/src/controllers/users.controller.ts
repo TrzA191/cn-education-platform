@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { pool } from "../lib/db";
 import bcrypt from "bcryptjs";
-import { logSecurityEvent } from "../services/security.service";
+import { logSecurityEvent, logAudit } from "../services/security.service";
 
 export async function listUsers(req: Request, res: Response) {
   try {
@@ -47,6 +47,15 @@ export async function createUser(req: Request, res: Response) {
       .input("user_id", newUserId)
       .query(`INSERT INTO user_profiles (user_id) VALUES (@user_id)`);
 
+    await logAudit({
+      userId: adminId,
+      tableName: 'users',
+      recordId: newUserId,
+      action: 'INSERT',
+      newValues: { username, email, role },
+      ipAddress
+    });
+
     await logSecurityEvent({
       userId: adminId,
       eventType: 'login_success', // Reutilizando tipo o podrías crear 'user_created'
@@ -72,6 +81,10 @@ export async function updateUser(req: Request, res: Response) {
   const ipAddress = req.ip ?? 'unknown';
 
   try {
+    // Obtener valores antiguos para auditoría
+    const oldRes = await pool.request().input("id", id).query(`SELECT username, email, role FROM users WHERE id = @id`);
+    const oldValues = oldRes.recordset[0];
+
     await pool.request()
       .input("id", id)
       .input("username", username)
@@ -82,6 +95,16 @@ export async function updateUser(req: Request, res: Response) {
         SET username = @username, email = @email, role = @role 
         WHERE id = @id
       `);
+
+    await logAudit({
+      userId: adminId,
+      tableName: 'users',
+      recordId: Number(id),
+      action: 'UPDATE',
+      oldValues,
+      newValues: { username, email, role },
+      ipAddress
+    });
 
     await logSecurityEvent({
       userId: adminId,
@@ -108,10 +131,23 @@ export async function deleteUser(req: Request, res: Response) {
   }
 
   try {
+    // Obtener valores antiguos antes de borrar
+    const oldRes = await pool.request().input("id", id).query(`SELECT username, email, role FROM users WHERE id = @id`);
+    const oldValues = oldRes.recordset[0];
+
     // Primero perfiles y datos relacionados si hay cascada manual
     await pool.request().input("id", id).query(`DELETE FROM user_profiles WHERE user_id = @id`);
     // Luego el usuario
     await pool.request().input("id", id).query(`DELETE FROM users WHERE id = @id`);
+
+    await logAudit({
+      userId: adminId,
+      tableName: 'users',
+      recordId: Number(id),
+      action: 'DELETE',
+      oldValues,
+      ipAddress
+    });
 
     await logSecurityEvent({
       userId: adminId,

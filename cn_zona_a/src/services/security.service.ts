@@ -219,3 +219,33 @@ export async function requiresCaptcha(email: string): Promise<boolean> {
   }
   return false;
 }
+
+// ─── 9. Historial de Cambios (Audit Trail) ───────────────────────────────────
+export async function logAudit(params: {
+  userId?   : number | null
+  tableName : string
+  recordId  : number
+  action    : 'INSERT' | 'UPDATE' | 'DELETE'
+  oldValues?: any
+  newValues?: any
+  ipAddress?: string
+}) {
+  try {
+    await pool.request()
+      .input('user_id',    params.userId || null)
+      .input('table_name', params.tableName)
+      .input('record_id',  params.recordId)
+      .input('action',     params.action)
+      .input('old_values', params.oldValues ? JSON.stringify(params.oldValues) : null)
+      .input('new_values', params.newValues ? JSON.stringify(params.newValues) : null)
+      .input('ip_address', params.ipAddress || null)
+      .query(`
+        INSERT INTO audit_trail 
+          (user_id, table_name, record_id, action, old_values, new_values, ip_address, created_at)
+        VALUES 
+          (@user_id, @table_name, @record_id, @action, @old_values, @new_values, @ip_address, GETUTCDATE())
+      `)
+  } catch (err) {
+    console.error('[SecurityService] Error al escribir audit_trail:', err)
+  }
+}

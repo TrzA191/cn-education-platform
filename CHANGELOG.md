@@ -25,6 +25,16 @@ Registro cronológico e histórico de modificaciones en el monorepo.
 - **Rediseño UI (Dashboard SaaS):** Reestructuración total de `layout.tsx` y `dashboard/page.tsx`. Transición a modo oscuro para el Sidebar, barra superior (Top Bar) con notificaciones, migración de SVGs planos a `lucide-react`, y rediseño de las vistas usando *Grid* para mostrar tarjetas estilizadas con Tailwind CSS puro.
 - **Rollout de UI (Fixes & Login):** Restaurados los enlaces `<Link>` perdidos y expansión de los estilos base de alta fidelidad hacia los controladores externos como `login/page.tsx`.
 
+## [2026-04-27] Control de Sesión Dinámico y Auto-Logout Automático
+**Carpeta: `cn_zona_a` (Backend API)**
+- **Expiración Dinámica:** Se vinculó el tiempo de vida del Token JWT y de la sesión en Base de Datos a la variable de entorno `JWT_EXPIRES`.
+- **Parser de Tiempo:** Implementada lógica para procesar formatos como `1h`, `7d`, `1m` o `30s` directamente desde el `.env`, sincronizando la expiración física en SQL Server con la lógica del token.
+
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- **SessionGuard Component:** Nuevo componente "guardián" de alto nivel (`components/SessionGuard.tsx`) que monitorea la validez del JWT en segundo plano.
+- **Auto-Logout Pasivo:** Si el token expira mientras el usuario está en la plataforma (incluso sin interactuar), el guardián detecta la expiración, limpia el almacenamiento local (`auth-storage`) y redirige automáticamente a `/login`.
+- **Intercepción de Red:** Refuerzo en `api.ts` para capturar errores 401 (Unauthorized) y forzar el cierre de sesión ante cualquier intento fallido por token caducado.
+
 ## [2026-04-16] Algoritmo de Recomendación y Rutas Automáticas
 **Carpeta: `cn_zona_b` (Backend API)**
 - **Modelos:** Agregado modelo interactivo `UserInterest` para el enrutamiento de perfil, se modificaron los campos de base de datos de contenido (`tags`, `difficulty_level`).
