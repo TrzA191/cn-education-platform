@@ -92,7 +92,7 @@ export default function ContenidosPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
           <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">Catálogo de Contenidos</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">Explora nuestra biblioteca de recursos multimedia y potencia tu aprendizaje.</p>
+          <p className="text-slate-600 dark:text-slate-300 font-medium text-lg">Explora nuestra biblioteca de recursos multimedia y potencia tu aprendizaje.</p>
         </div>
         <div className="flex items-center gap-2 text-sm font-bold text-slate-400 dark:text-slate-500 bg-slate-100/50 dark:bg-slate-800/50 px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-800">
           <BookOpen className="w-4 h-4" />
@@ -139,7 +139,7 @@ export default function ContenidosPage() {
                 className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
                   typeFilter === t.id 
                     ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' 
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
                 {t.label}
@@ -161,7 +161,7 @@ export default function ContenidosPage() {
                 className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
                   difficultyFilter === d.id 
                     ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' 
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >
                 {d.label}
@@ -194,7 +194,7 @@ export default function ContenidosPage() {
             <Search className="w-10 h-10 text-slate-200" />
           </div>
           <h3 className="text-2xl font-bold text-slate-800 dark:text-white">No encontramos resultados</h3>
-          <p className="text-slate-500 dark:text-slate-400 font-medium mt-2 mb-8">Intenta ajustar los filtros o buscar con otros términos.</p>
+          <p className="text-slate-600 dark:text-slate-300 font-medium mt-2 mb-8">Intenta ajustar los filtros o buscar con otros términos.</p>
           <button 
             onClick={() => { setSearch(''); setTypeFilter(''); setDifficultyFilter('') }}
             className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
@@ -250,7 +250,7 @@ export default function ContenidosPage() {
                   {content.title}
                 </h3>
                 
-                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium line-clamp-3 mb-6 leading-relaxed">
+                <p className="text-slate-600 dark:text-slate-300 text-sm font-medium line-clamp-3 mb-6 leading-relaxed">
                   {content.description || 'Sin descripción disponible para este recurso educativo.'}
                 </p>
 

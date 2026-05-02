@@ -6,7 +6,7 @@ import { logSecurityEvent, logAudit } from "../services/security.service";
 export async function listUsers(req: Request, res: Response) {
   try {
     const result = await pool.request().query(`
-      SELECT id, username, email, role, created_at
+      SELECT id, username, email, role, created_at, is_blocked
       FROM users
       ORDER BY created_at DESC
     `);
@@ -18,15 +18,28 @@ export async function listUsers(req: Request, res: Response) {
 }
 
 export async function createUser(req: Request, res: Response) {
-  const { username, email, password, role } = req.body;
+  const { username, email, password, role, verificationCode } = req.body;
   const adminId = (req as any).user?.id;
   const ipAddress = req.ip ?? 'unknown';
 
-  if (!username || !email || !password) {
-    return res.status(400).json({ error: "Faltan campos obligatorios" });
+  if (!username || !email || !password || !verificationCode) {
+    return res.status(400).json({ error: "Faltan campos obligatorios (incluyendo código)" });
   }
 
   try {
+    // 1. Verificar el código
+    const verifyResult = await pool.request()
+      .input('email', email)
+      .input('code', verificationCode)
+      .query(`
+        SELECT * FROM verification_codes 
+        WHERE email = @email AND code = @code AND expires_at > GETDATE()
+      `);
+
+    if (verifyResult.recordset.length === 0) {
+      return res.status(400).json({ error: 'Código de verificación inválido o expirado' });
+    }
+
     const hash = await bcrypt.hash(password, 12);
     
     const result = await pool.request()
@@ -47,6 +60,11 @@ export async function createUser(req: Request, res: Response) {
       .input("user_id", newUserId)
       .query(`INSERT INTO user_profiles (user_id) VALUES (@user_id)`);
 
+    // Eliminar el código usado
+    await pool.request()
+      .input('email', email)
+      .query(`DELETE FROM verification_codes WHERE email = @email`);
+
     await logAudit({
       userId: adminId,
       tableName: 'users',
@@ -58,13 +76,13 @@ export async function createUser(req: Request, res: Response) {
 
     await logSecurityEvent({
       userId: adminId,
-      eventType: 'login_success', // Reutilizando tipo o podrías crear 'user_created'
-      description: `Admin [${adminId}] creó usuario: ${email} (${role})`,
+      eventType: 'login_success', 
+      description: `Admin [${adminId}] creó y verificó usuario: ${email} (${role})`,
       ipAddress,
       severity: 'bajo'
     });
 
-    res.status(201).json({ message: "Usuario creado", id: newUserId });
+    res.status(201).json({ message: "Usuario creado y verificado", id: newUserId });
   } catch (err: any) {
     if (err.number === 2627 || err.number === 2601) {
       return res.status(409).json({ error: "El correo o usuario ya existe" });
@@ -121,48 +139,88 @@ export async function updateUser(req: Request, res: Response) {
   }
 }
 
-export async function deleteUser(req: Request, res: Response) {
+export async function toggleBlockUser(req: Request, res: Response) {
   const { id } = req.params;
   const adminId = (req as any).user?.id;
   const ipAddress = req.ip ?? 'unknown';
 
   if (Number(id) === adminId) {
-    return res.status(400).json({ error: "No puedes eliminarte a ti mismo" });
+    return res.status(400).json({ error: "No puedes bloquearte a ti mismo" });
   }
 
   try {
-    // Obtener valores antiguos antes de borrar
-    const oldRes = await pool.request().input("id", id).query(`SELECT username, email, role FROM users WHERE id = @id`);
-    const oldValues = oldRes.recordset[0];
+    // Obtener estado actual
+    const userRes = await pool.request().input("id", id).query(`SELECT is_blocked, email FROM users WHERE id = @id`);
+    if (userRes.recordset.length === 0) return res.status(404).json({ error: "Usuario no encontrado" });
+    
+    const currentUser = userRes.recordset[0];
+    const isCurrentlyBlocked = Boolean(currentUser.is_blocked);
+    const newStatus = isCurrentlyBlocked ? 0 : 1;
+    const userIdNum = Number(id);
 
-    // Primero perfiles y datos relacionados si hay cascada manual
-    await pool.request().input("id", id).query(`DELETE FROM user_profiles WHERE user_id = @id`);
-    // Luego el usuario
-    await pool.request().input("id", id).query(`DELETE FROM users WHERE id = @id`);
+    // 1. Actualizar tabla principal (Forzar 0 o 1)
+    await pool.request()
+      .input("id", userIdNum)
+      .input("status", newStatus)
+      .query(`UPDATE users SET is_blocked = @status WHERE id = @id`);
+
+    // 2. Sincronización con blocked_accounts
+    if (newStatus === 1) {
+      // BLOQUEO: Insertar nuevo registro
+      await pool.request()
+        .input("user_id", userIdNum)
+        .input("reason", "manual")
+        .query(`
+          INSERT INTO blocked_accounts (user_id, reason, blocked_at, is_active)
+          VALUES (@user_id, @reason, GETUTCDATE(), 1)
+        `);
+    } else {
+      // DESBLOQUEO: Desactivar absolutamente todo lo anterior
+      await pool.request()
+        .input("user_id", userIdNum)
+        .query(`
+          UPDATE blocked_accounts 
+          SET is_active = 0, 
+              blocked_until = GETUTCDATE() 
+          WHERE user_id = @user_id 
+            AND (is_active = 1 OR blocked_until > GETUTCDATE())
+        `);
+    }
+
+
 
     await logAudit({
       userId: adminId,
       tableName: 'users',
-      recordId: Number(id),
-      action: 'DELETE',
-      oldValues,
+      recordId: userIdNum,
+      action: 'UPDATE',
+      oldValues: { is_blocked: currentUser.is_blocked },
+      newValues: { is_blocked: newStatus },
       ipAddress
     });
 
     await logSecurityEvent({
       userId: adminId,
-      eventType: 'session_revoked',
-      description: `Admin [${adminId}] eliminó usuario ID: ${id}`,
+      eventType: newStatus === 1 ? 'account_blocked' : 'login_success',
+      description: `Admin [${adminId}] ${newStatus === 1 ? 'bloqueó' : 'desbloqueó'} usuario ID: ${id} (${currentUser.email})`,
       ipAddress,
-      severity: 'medio'
+      severity: newStatus === 1 ? 'medio' : 'bajo'
     });
 
-    res.json({ message: "Usuario eliminado correctamente" });
+    res.json({ 
+      message: newStatus === 1 ? "Usuario bloqueado correctamente" : "Usuario desbloqueado correctamente",
+      is_blocked: !!newStatus
+    });
   } catch (err) {
-    console.error('[deleteUser]', err);
-    res.status(500).json({ error: "Error al eliminar usuario" });
+    console.error('[toggleBlockUser] Critical Error:', err);
+    res.status(500).json({ 
+      error: "Error al procesar el bloqueo/desbloqueo",
+      details: err instanceof Error ? err.message : String(err)
+    });
   }
 }
+
+
 
 export async function getProfile(req: Request, res: Response) {
 
@@ -237,5 +295,23 @@ export async function listFailedAttempts(req: Request, res: Response) {
   } catch (err) {
     console.error('[listFailedAttempts]', err)
     res.status(500).json({ error: 'Error interno del servidor' })
+  }
+}
+
+export async function listAuditTrail(req: Request, res: Response) {
+  try {
+    const result = await pool.request().query(`
+      SELECT TOP 100
+        at.id, at.user_id, u.email, at.table_name,
+        at.record_id, at.action, at.old_values,
+        at.new_values, at.ip_address, at.created_at
+      FROM audit_trail at
+      LEFT JOIN users u ON at.user_id = u.id
+      ORDER BY at.created_at DESC
+    `)
+    res.json(result.recordset)
+  } catch (err) {
+    console.error('[listAuditTrail]', err)
+    res.status(500).json({ error: 'Error al obtener la bitácora de auditoría' })
   }
 }

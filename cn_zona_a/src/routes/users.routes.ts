@@ -4,11 +4,12 @@ import {
   listUsers, 
   createUser, 
   updateUser, 
-  deleteUser, 
+  toggleBlockUser,
   getProfile, 
   updateProfile, 
   listSecurityLogs, 
-  listFailedAttempts 
+  listFailedAttempts,
+  listAuditTrail
 } from "../controllers/users.controller";
 
 const router = Router();
@@ -17,11 +18,13 @@ const router = Router();
 router.get("/", auth("admin"), listUsers);
 router.post("/", auth("admin"), createUser);
 router.patch("/:id", auth("admin"), updateUser);
-router.delete("/:id", auth("admin"), deleteUser);
+router.post("/:id/toggle-block", auth("admin"), toggleBlockUser);
+
 
 // Auditoría (Admin)
 router.get("/security-logs", auth("admin"), listSecurityLogs);
 router.get("/failed-attempts", auth("admin"), listFailedAttempts);
+router.get("/audit-trail", auth("admin"), listAuditTrail);
 
 // Perfil (Cualquier usuario autenticado)
 router.get("/:id/profile", auth(), getProfile);

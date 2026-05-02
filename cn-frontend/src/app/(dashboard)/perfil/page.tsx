@@ -68,8 +68,8 @@ export default function PerfilPage() {
   return (
     <div className="max-w-2xl mx-auto pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Mi perfil</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Actualiza tu información personal y preferencias</p>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Mi perfil</h1>
+        <p className="text-slate-600 dark:text-slate-300 font-medium mt-1">Actualiza tu información personal y preferencias</p>
       </div>
 
       {/* Avatar + info básica */}
@@ -81,11 +81,11 @@ export default function PerfilPage() {
             </span>
           </div>
           <div>
-            <p className="font-semibold text-gray-900 dark:text-white">{user?.email}</p>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize border ${
-              user?.role === 'admin'   ? 'bg-red-50 text-red-700 border-red-100 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20' :
-              user?.role === 'teacher' ? 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20' :
-              'bg-green-50 text-green-700 border-green-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
+            <p className="font-bold text-slate-800 dark:text-white">{user?.email}</p>
+            <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-widest border ${
+              user?.role === 'admin'   ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20' :
+              user?.role === 'teacher' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20' :
+              'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
             }`}>
               {user?.role}
             </span>

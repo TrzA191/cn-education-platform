@@ -36,7 +36,7 @@ Registro cronológico e histórico de modificaciones en el monorepo.
 - **Intercepción de Red:** Refuerzo en `api.ts` para capturar errores 401 (Unauthorized) y forzar el cierre de sesión ante cualquier intento fallido por token caducado.
 
 ## [2026-04-16] Algoritmo de Recomendación y Rutas Automáticas
-**Carpeta: `cn_zona_b` (Backend API)**
+**Carpeta: `cn_zona_b` (Backend API Content)**
 - **Modelos:** Agregado modelo interactivo `UserInterest` para el enrutamiento de perfil, se modificaron los campos de base de datos de contenido (`tags`, `difficulty_level`).
 - **Endpoint Inteligente:** Se implementó `paths.controller.ts` > `generateSystemPath`, generando rutas (`is_system_generated: true`) ordenadas explícitamente desde la dificultad más elemental hacia la más avanzada y empacadas en auto-enroll.
 
@@ -133,3 +133,22 @@ Registro cronológico e histórico de modificaciones en el monorepo.
 
 **Carpeta: `cd_gateway` (Gateway API)**
 - **Exposición Segura:** Actualizadas las reglas de proxy en `gateway.routes.ts` para enrutar los nuevos flujos de recuperación (`/forgot-password`, `/reset-password`) hacia Zona A.
+
+## [2026-04-28] Hardening de Seguridad, Auditoría Forense y Monitoreo de IP
+**Carpeta: `cn_zona_a` (Backend API)**
+- **Auditoría Avanzada (Caja Negra):** Implementación de la tabla `audit_trail`. Creada función `logAudit` para capturar estados previos (`old_values`) y posteriores (`new_values`) de cada cambio en la DB.
+- **Monitoreo de Sesiones (Hijacking):** El middleware de autenticación ahora es asíncrono y valida la consistencia de la IP. Si la IP de la petición no coincide con la que inició la sesión, se revoca el token automáticamente y se registra como `suspicious_access`.
+- **Revocación Masiva:** Nuevo endpoint `POST /revoke-sessions` para permitir al usuario invalidar todos sus accesos activos ante sospecha de compromiso.
+- **Trazabilidad Forense:** Modificado el endpoint `/me` para retornar la IP actual y la fecha de última conexión.
+
+**Carpeta: `cd_gateway` (Gateway API)**
+- **Proxy de Auditoría:** Habilitado el paso para las rutas administrativas `/users/audit-trail`, `/users/security-logs` y `/users/failed-attempts`.
+- **Rutas de Revocación:** Registrada la ruta de cierre masivo de sesiones.
+
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- **Dashboard de Seguridad Admin:** Nueva página premium en `/admin/seguridad` con visualización forense de la bitácora de auditoría (Caja Negra), intentos de intrusión y monitor de baneos.
+- **Control de Usuario en Perfil:**
+    - Integración de widgets informativos de IP y Último Acceso.
+    - Implementación del "Botón de Pánico" para cerrar todas las sesiones activas.
+- **Inteligencia en Login:** El sistema detecta si la sesión fue cerrada por "actividad sospechosa" mediante parámetros en la URL y muestra una advertencia de seguridad clara al usuario.
+- **SessionGuard:** Refuerzo del guardián de sesión para manejar las revocaciones forzadas por cambio de IP.

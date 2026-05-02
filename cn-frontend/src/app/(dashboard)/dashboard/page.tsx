@@ -51,7 +51,7 @@ function StatCard({ label, value, icon, gradient }: {
         </div>
         <div>
           <p className="text-3xl font-bold text-slate-800 dark:text-white">{value}</p>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">{label}</p>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">{label}</p>
         </div>
       </div>
     </div>
@@ -151,7 +151,7 @@ export default function DashboardPage() {
             ) : contents.length === 0 ? (
               <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
                 <FileBox className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-500 dark:text-slate-400 font-medium">No contents available yet.</p>
+                <p className="text-slate-600 dark:text-slate-300 font-medium">No contents available yet.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -164,11 +164,11 @@ export default function DashboardPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-base font-semibold text-slate-800 dark:text-slate-100 truncate group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors">{c.title}</p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{c.content_type}</span>
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-300 uppercase tracking-wider">{c.content_type}</span>
                           {c.duration_seconds && (
                             <>
                               <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
-                              <span className="text-xs text-slate-500 dark:text-slate-400">{Math.round(c.duration_seconds / 60)} min read</span>
+                              <span className="text-xs text-slate-600 dark:text-slate-300">{Math.round(c.duration_seconds / 60)} min read</span>
                             </>
                           )}
                         </div>
@@ -239,14 +239,14 @@ export default function DashboardPage() {
                         </span>
                       </div>
                       <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight mb-1">{p.title}</h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
                         {p.is_system_generated ? 'AI Generated' : 'Teacher Created'}
                       </p>
                       
                       {/* Fake Progress Bar for UI Aesthetics */}
                       <div className="mt-4">
                         <div className="flex justify-between text-xs mb-1">
-                          <span className="text-slate-500 dark:text-slate-400 font-medium">Progress</span>
+                          <span className="text-slate-600 dark:text-slate-300 font-medium">Progress</span>
                           <span className="text-indigo-600 dark:text-indigo-400 font-bold">{Math.floor(Math.random() * 60 + 20)}%</span>
                         </div>
                         <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5">

@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const createContentSchema = z.object({
   body: z.object({
     title: z.string().min(3, 'El título debe tener al menos 3 caracteres').max(150, 'El título es demasiado largo'),
-    description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres').max(1000, 'La descripción no puede exceder los 1000 caracteres'),
+    description: z.string().min(3, 'La descripción debe tener al menos 3 caracteres').max(1000, 'La descripción no puede exceder los 1000 caracteres'),
     content_type: z.enum(['video', 'pdf', 'texto']),
     difficulty_level: z.enum(['basico', 'intermedio', 'avanzado']),
     

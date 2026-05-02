@@ -24,6 +24,10 @@ router.get('/auth/me', authenticate, proxy(ZONA_A))
 
 // Rutas de usuarios (admin ve todos, usuario ve su propio perfil)
 router.get('/users', authenticate, authorize('admin'), proxy(ZONA_A))
+router.post('/users', authenticate, authorize('admin'), proxy(ZONA_A))
+router.patch('/users/:id', authenticate, authorize('admin'), proxy(ZONA_A))
+router.post('/users/:id/toggle-block', authenticate, authorize('admin'), proxy(ZONA_A))
+
 router.get('/users/:id/profile', authenticate, proxy(ZONA_A))
 router.patch('/users/:id/profile', authenticate, proxy(ZONA_A))
 
@@ -74,5 +78,6 @@ router.get('/ratings/:contentId', proxy(ZONA_B))
 
 router.get('/users/security-logs', authenticate, authorize('admin'), proxy(ZONA_A))
 router.get('/users/failed-attempts', authenticate, authorize('admin'), proxy(ZONA_A))
+router.get('/users/audit-trail', authenticate, authorize('admin'), proxy(ZONA_A))
 
 export default router

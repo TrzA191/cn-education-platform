@@ -212,7 +212,7 @@ export default function LoginPage() {
             <GraduationCap className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Pathly</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">Trace your path, learn at your pace</p>
+          <p className="text-slate-600 dark:text-slate-300 font-medium mt-1">Trace your path, learn at your pace</p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 p-8">
@@ -221,13 +221,13 @@ export default function LoginPage() {
               <button
                 onClick={() => { setTab('login'); setError(''); setSuccessMsg(''); setCaptchaToken(null); setForceShowCaptcha(false); setRegisterStep(1); }}
                 className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
-                  tab === 'login' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                  tab === 'login' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >Log in</button>
               <button
                 onClick={() => { setTab('register'); setError(''); setSuccessMsg(''); setFieldErrors({}); setRegisterStep(1); }}
                 className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
-                  tab === 'register' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                  tab === 'register' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-200'
                 }`}
               >Sign up</button>
             </div>

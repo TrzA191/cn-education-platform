@@ -109,18 +109,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-          <p className="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 mt-2">Menu Principal</p>
+          <p className="px-3 text-xs font-bold text-slate-500/80 uppercase tracking-widest mb-4 mt-2">Menu Principal</p>
           {navItems.map((item) => {
             const active = pathname === item.href
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
-                  active
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${active
                     ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 shadow-sm'
                     : 'text-gray-400 hover:bg-gray-800 dark:hover:bg-slate-800 hover:text-gray-100'
-                }`}
+                  }`}
               >
                 <div className={active ? 'text-indigo-400' : 'text-slate-500 group-hover:text-slate-300'}>
                   {item.icon}
@@ -146,10 +145,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Topbar */}
         <header className="h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-gray-100 dark:border-slate-800 sticky top-0 z-10 px-8 flex items-center justify-between">
           <div className="flex flex-col">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+            <h2 className="text-xl font-black text-slate-800 dark:text-white">
               Welcome back, {mounted ? (user?.email?.split('@')[0] || 'User') : ''} 👋
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Ready to learn something new today?</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">Ready to learn something new today?</p>
           </div>
 
           <div className="flex items-center gap-6">
@@ -159,14 +158,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
             <div className="flex items-center gap-3 pl-6 border-l border-gray-200 dark:border-slate-800">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                <p className="text-sm font-bold text-slate-800 dark:text-white">
                   {mounted ? (user?.email || '') : ''}
                 </p>
-                <p className={`text-xs font-medium capitalize ${
-                  user?.role === 'admin' ? 'text-red-600 dark:text-rose-400' :
-                  user?.role === 'teacher' ? 'text-blue-600 dark:text-sky-400' :
-                  'text-emerald-600 dark:text-emerald-400'
-                }`}>
+                <p className={`text-[10px] font-black uppercase tracking-tighter ${user?.role === 'admin' ? 'text-rose-600 dark:text-rose-400' :
+                    user?.role === 'teacher' ? 'text-indigo-600 dark:text-indigo-400' :
+                      'text-emerald-600 dark:text-emerald-400'
+                  }`}>
                   {mounted ? (user?.role || 'student') : ''}
                 </p>
               </div>
