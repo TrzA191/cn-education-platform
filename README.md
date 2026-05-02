@@ -1,85 +1,78 @@
-# Pathly - Plataforma Educativa (Proyecto CN Education)
-
-Bienvenido al repositorio principal de **Pathly** (CN Education), una plataforma educativa dinámica e interactiva diseñada para revolucionar la manera en que los estudiantes descubren, organizan y consumen el contenido de aprendizaje.
-
+# Pathly - Plataforma Educativa Cloud Native 🚀
+*(Proyecto CN Education)*
+Bienvenido al repositorio principal de **Pathly**, una plataforma educativa moderna, dinámica y segura diseñada bajo filosofía Cloud Native. Pathly revoluciona la manera en que los estudiantes descubren, organizan y consumen el contenido de aprendizaje, ofreciendo rutas estructuradas que evolucionan según la dificultad y las etiquetas del contenido.
 ## 📖 Sobre el Proyecto
-
-Pathly es un sistema educativo donde **profesores seleccionados** pueden subir y organizar contenido orientado a sus materias. Por el otro lado, los **alumnos** ingresan a la plataforma para construir y cursar **rutas de aprendizaje completamente personalizadas**. 
-
-El sistema guía al estudiante mediante taxonomías estructuradas, reglas lógicas de secuenciación de contenidos, calificaciones interactivas y, finalmente, evaluaciones de validación de conocimientos.
-
+Pathly conecta a profesores y alumnos en un entorno altamente seguro. Los educadores pueden subir y estructurar material multimedia, mientras que los alumnos construyen y cursan trayectorias personalizadas.
+El sistema guía al estudiante mediante taxonomías estructuradas, un algoritmo de **Secuenciación Lógica** de contenidos y un seguimiento porcentual en tiempo real del progreso.
 ---
-
 ## 🏗️ Arquitectura del Sistema
-
-La solución está implementada bajo un enfoque de **Microservicios Desacoplados y Orientada a Eventos (EDA)**. 
-
+La solución está implementada bajo un enfoque de **Microservicios Desacoplados** y **Persistencia Políglota**, operando detrás de un API Gateway centralizado.
 ### Persistencia de Datos Distribuida (Dos Zonas)
-El modelo de datos se divide en dos zonas independientes para optimizar transacciones, disponibilidad y el tipo de carga:
-
-* **Zona A (Identidad y Seguridad):** Gestiona el registro, autenticación, perfiles de usuario y políticas de seguridad (bloqueos, logs y control de intentos fallidos). Emplea una **Base de Datos Relacional (SQL)** para garantizar profunda consistencia transaccional e integridad de las identidades.
-* **Zona B (Contenido y Aprendizaje):** (En desarrollo). Gestionará el contenido de los profesores, algoritmos de rutas personalizadas basadas en *Tags*, foros, calificaciones e historial de progresos. Operará nativamente sobre una base de datos **NoSQL** , ideal para almacenar estructuras de documentos enriquecidos, con escalabilidad horizontal masiva para alta concurrencia de estudiantes.
-
-### Infraestructura Cloud Target (Microsoft Azure)
-Toda la plataforma y sus respectivos microservicios están diseñados para ser desplegados en la infraestructura cloud de **Microsoft Azure**, aprovechando de manera estratégica el programa y los créditos de *Azure for Students* (créditos de 100 USD) para realizar pruebas de concepto y desarrollos reales en la nube:
-
-* **Ingesta de Contenidos y Media:** Carga directa a *Azure Blob Storage* mediante URL de firmas de acceso compartido (SAS), detonando flujos asíncronos en *Azure Functions* y *Azure Event Grid* para indexación automática sin golpear las bases de datos transaccionales.
-* **Distribución Global:** Entrega de recursos estáticos e imágenes a velocidad máxima usando *Azure CDN*.
-* **Identidad / Lógica Avanzada:** Integración futura y servicios base de identidad. Protección en endpoints con validaciones ReCAPTCHA y lógicas dinámicas administradas en código.
-
+El modelo de datos se divide estratégicamente para optimizar la carga, garantizar la integridad y separar responsabilidades:
+*   **🛡️ Zona A (Identidad y Seguridad):** Gestiona el registro, autenticación, perfiles y políticas de seguridad. Emplea una Base de Datos Relacional **(Azure SQL)** para garantizar una consistencia transaccional absoluta y mantener la **Bitácora de Auditoría Forense** (Caja Negra).
+*   **🎓 Zona B (Contenido y Aprendizaje):** Gestiona las rutas de aprendizaje, contenidos multimedia, sistema de papelera de reciclaje y progreso. Opera sobre una base de datos NoSQL **(Azure Cosmos DB / API MongoDB)**, ideal para la flexibilidad de metadatos y escalabilidad masiva.
+### ☁️ Infraestructura Cloud Target (Microsoft Azure)
+Toda la plataforma está diseñada para el ecosistema de Microsoft Azure:
+*   **Ingesta de Contenidos:** Carga de archivos multimedia masivos directamente hacia **Azure Blob Storage** manejada a través del backend mediante procesos optimizados (Multer), aislando la carga de archivos del tráfico de las bases de datos.
+*   **Gestión NoOps:** Escalabilidad garantizada por servicios administrados (PaaS) de Azure, sin necesidad de administrar servidores físicos.
 ---
-
+## 🔐 Seguridad: "Defensa en Profundidad"
+La plataforma toma la seguridad como prioridad número uno, implementando un blindaje multicapa en la Zona A:
+1.  **Protección Anti-Secuestro de Sesión (IP Hijacking):** Middleware dinámico que revoca instantáneamente las sesiones activas si detecta un cambio no autorizado de IP.
+2.  **Auditoría Forense (Caja Negra):** Registro inmutable en base de datos que captura el estado exacto (JSON anterior y posterior) de todas las transacciones críticas administrativas.
+3.  **Validación Estricta de Esquemas (Zod):** "Frontera de seguridad" que sanitiza y valida el 100% de los datos entrantes (cargas de archivos, registros, perfiles) antes de tocar la lógica de negocio.
+4.  **Escalating Lockout y Logs:** Sistema de castigo jerárquico que bloquea atacantes de fuerza bruta progresivamente (10min, 30min, etc.), respaldado por un panel de monitoreo de seguridad multinivel para el administrador.
+5.  **Google reCAPTCHA v2:** Prevención nativa contra bots en los flujos de identidad.
+---
+## 🛠️ Stack Tecnológico
+*   **Frontend:** Next.js (React), TypeScript, Tailwind CSS, Zustand, Lucide React.
+*   **API Gateway (BFF):** Node.js, Express, http-proxy-middleware.
+*   **Microservicios Backend:** Node.js, Express, TypeScript, Zod, JWT.
+*   **Bases de Datos:** Azure SQL Server (MSSQL), Azure Cosmos DB (MongoDB).
+*   **Almacenamiento Cloud:** Azure Blob Storage.
+---
 ## 📂 Estructura del Monorepo
-
-```plaintext
+```text
 Proyecto-CN_Edcucation/
-├── cn-frontend/          # Web Application UI
-│   # Construido con Next.js, React, Zustand. Contiene todo el flujo 
-│   # de los estudiantes, consumo de cursos, evaluaciones y panel docente.
+├── cn-frontend/          # Web Application UI (Next.js)
+│   # Contiene los dashboards de estudiantes, admin de seguridad,
+│   # consumo de rutas de aprendizaje y carga de contenido docente.
 │
-├── cd_gateway/           # API Gateway (Orquestador / BFF)
-│   # Aplicación Node.js/Express. Único punto de entrada público que
-│   # recibe el tráfico de internet y lo enruta hacia la Zona A o Zona B.
+├── cd_gateway/           # API Gateway (Orquestador)
+│   # Único punto de entrada público que recibe tráfico y lo 
+│   # enruta de forma segura hacia la Zona A o Zona B.
 │
-├── cn_zona_a/            # Microservicio - Identidad y Acceso
-│   # Backend Node.js conectado a SQL Server. Emite JWT, maneja
-│   # registros mediante OTP (correos reales por Nodemailer), logs
-│   # de seguridad, y un sofisticado esquema Escalating Lockout.
+├── cn_zona_a/            # Microservicio - Identidad y Seguridad
+│   # Backend (SQL). Emite JWT, maneja seguridad forense, validación
+│   # anti-hijacking y administración de usuarios.
 │
-└── CHANGELOG.md          # Bitácora histórica y detallada de features.
-```
+├── cn_zona_b/            # Microservicio - Contenido y Rutas
+│   # Backend (NoSQL). Lógica de secuenciación, CRUD de recursos,
+│   # progreso de alumnos e integración con Azure Blob Storage.
+│
+└── CHANGELOG.md          # Bitácora histórica detallada de milestones.
+🚀 Instalación y Desarrollo (Local)
+Requisitos previos: Node.js, pnpm, e instancias locales/nube de SQL Server y MongoDB.
 
----
+Crea los archivos .env en cada servicio basándote en los archivos .env.example o .env.template.
+Asegúrate de ejecutar las migraciones necesarias en Zona A (migrate.ts).
+Para levantar el ecosistema completo en desarrollo, necesitas ejecutar 3 terminales simultáneamente:
 
-## 🔐 Seguridad y Autenticación
-La plataforma toma muy en serio la seguridad de los alumnos y profesores mediante el microservicio de la Zona A:
+Terminal 1: Microservicio Zona A (Puerto 3000)
 
-1. **Flujo de Registro (OTP):** Los correos son validados enviando códigos aleatorios obligatorios generados vía *Nodemailer* a las cuentas de correo antes de completar un registro.
-2. **Control de Ataques y ReCAPTCHA:** Algoritmo dinámico que pide Google reCAPTCHA al detectar anomalías en los inicios de sesión.
-3. **Escalating Lockout (Castigo Jerárquico):** Un sofisticado sistema en base de datos que bloquea atacantes, aumentando la penalización en periodos de tiempo estrictos (10min, 15min, 30min, 1 hora) dependiendo de su persistencia criminal.
-
----
-
-## 🚀 Instalación y Desarrollo (Local)
-
-1. **Requisitos:** Node.js, `pnpm` y una instancia de SQL Server (para Zona A).
-2. **Entorno:** Crea los archivos `.env` basándote en los templates en cada carpeta. 
-3. **Migraciones:** Zona A utiliza migraciones en crudo para asegurar que las tablas SQL existan al arrancar.
-
-Para levantar el ecosistema completo en desarrollo, debes abrir múltiples terminales e inicializar todo respectivamente:
-
-```bash
-# Terminal 1: Zona A (Backend Identidad) Puerto 3000
+bash
 cd cn_zona_a
 pnpm install
 pnpm dev
+Terminal 2: API Gateway (Puerto 3002)
 
-# Terminal 2: API Gateway Puerto 3002
+bash
 cd cd_gateway
 pnpm install
 pnpm dev
+Terminal 3: Frontend (Puerto 3001)
 
-# Terminal 3: Frontend (Next.js) Puerto 3001
+bash
 cd cn-frontend
 pnpm install
 pnpm dev
