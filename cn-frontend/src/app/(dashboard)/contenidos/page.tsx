@@ -25,8 +25,10 @@ interface Content {
   content_type: 'video' | 'pdf' | 'texto'
   difficulty_level?: 'basico' | 'intermedio' | 'avanzado'
   duration_seconds?: number
+  average_rating?: number
   created_at: string
 }
+
 
 function difficultyColor(level: string) {
   const map: Record<string, string> = {
@@ -58,15 +60,17 @@ export default function ContenidosPage() {
   const [contents, setContents] = useState<Content[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<string>('')
   const [difficultyFilter, setDifficultyFilter] = useState<string>('')
 
-  const fetchContents = async () => {
+
+  const fetchContents = async (searchTerm?: string) => {
     setLoading(true)
+    const finalSearch = searchTerm !== undefined ? searchTerm : search
+    console.log(`[Catalog] Buscando: "${finalSearch}", Dificultad: "${difficultyFilter}"`);
+    
     try {
       const params = new URLSearchParams()
-      if (search) params.append('title', search)
-      if (typeFilter) params.append('content_type', typeFilter)
+      if (finalSearch) params.append('title', finalSearch)
       if (difficultyFilter) params.append('difficulty_level', difficultyFilter)
 
       const res = await api.get(`/api/contents?${params.toString()}`)
@@ -78,12 +82,17 @@ export default function ContenidosPage() {
     }
   }
 
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchContents()
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [search, typeFilter, difficultyFilter])
+    fetchContents()
+  }, [difficultyFilter])
+
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    fetchContents()
+  }
+
+
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
@@ -103,50 +112,42 @@ export default function ContenidosPage() {
       {/* Filters Bar */}
       <div className="bg-white dark:bg-slate-900 p-4 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col lg:flex-row gap-4 items-center">
         
-        {/* Search */}
-        <div className="relative flex-1 w-full">
-          <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Buscar por título del contenido..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-4 py-4 rounded-3xl bg-slate-50 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-750 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none text-slate-900 dark:text-white font-medium placeholder-slate-400 dark:placeholder-slate-500"
-          />
-          {search && (
-            <button 
-              onClick={() => setSearch('')}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-400 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+          <form onSubmit={handleSearchSubmit} className="relative flex-1 w-full">
+            <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Buscar por título... (Presiona Enter o clica en Buscar)"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit()}
+              className="w-full pl-12 pr-28 py-4 rounded-3xl bg-slate-50 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-800/80 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none text-slate-900 dark:text-white font-medium placeholder-slate-400 dark:placeholder-slate-500"
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {search && (
+                <button 
+                  type="button"
+                  onClick={() => { 
+                    setSearch(''); 
+                    fetchContents(''); 
+                  }}
+                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-400 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+
+              <button 
+                type="submit"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-indigo-500/20"
+              >
+                Buscar
+              </button>
+            </div>
+          </form>
+
 
         {/* Filter Group */}
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-800">
-            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 px-2 uppercase tracking-widest">Tipo</span>
-            {[
-              { id: '', label: 'Todos' },
-              { id: 'video', label: 'Videos' },
-              { id: 'pdf', label: 'PDFs' },
-              { id: 'texto', label: 'Lecturas' },
-            ].map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTypeFilter(t.id)}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
-                  typeFilter === t.id 
-                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' 
-                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-200'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-
           <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-800">
             <span className="text-xs font-bold text-slate-400 dark:text-slate-500 px-2 uppercase tracking-widest">Nivel</span>
             {[
@@ -168,6 +169,7 @@ export default function ContenidosPage() {
               </button>
             ))}
           </div>
+
         </div>
       </div>
 
@@ -176,18 +178,19 @@ export default function ContenidosPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1,2,3,4,5,6].map(i => (
             <div key={i} className="h-[420px] bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 animate-pulse overflow-hidden">
-               <div className="h-48 bg-slate-50 dark:bg-slate-800/50" />
+               <div className="h-48 bg-slate-50 dark:bg-slate-800/40" />
                <div className="p-8 space-y-4">
-                 <div className="h-6 w-3/4 bg-slate-50 dark:bg-slate-800/50 rounded-lg" />
-                 <div className="h-20 w-full bg-slate-50 dark:bg-slate-800/50 rounded-lg" />
+                 <div className="h-6 w-3/4 bg-slate-100 dark:bg-slate-800/60 rounded-lg" />
+                 <div className="h-20 w-full bg-slate-100 dark:bg-slate-800/60 rounded-lg" />
                  <div className="flex gap-2">
-                    <div className="h-8 w-20 bg-slate-50 rounded-lg" />
-                    <div className="h-8 w-20 bg-slate-50 rounded-lg" />
+                    <div className="h-8 w-20 bg-slate-100 dark:bg-slate-800/60 rounded-lg" />
+                    <div className="h-8 w-20 bg-slate-100 dark:bg-slate-800/60 rounded-lg" />
                  </div>
                </div>
             </div>
           ))}
         </div>
+
       ) : contents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 bg-white dark:bg-slate-900 rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800">
           <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 text-slate-200 dark:text-slate-700 rounded-full flex items-center justify-center mb-6">
@@ -196,7 +199,8 @@ export default function ContenidosPage() {
           <h3 className="text-2xl font-bold text-slate-800 dark:text-white">No encontramos resultados</h3>
           <p className="text-slate-600 dark:text-slate-300 font-medium mt-2 mb-8">Intenta ajustar los filtros o buscar con otros términos.</p>
           <button 
-            onClick={() => { setSearch(''); setTypeFilter(''); setDifficultyFilter('') }}
+            onClick={() => { setSearch(''); setDifficultyFilter('') }}
+
             className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
           >
             Limpiar filtros
@@ -255,12 +259,21 @@ export default function ContenidosPage() {
                 </p>
 
                 <div className="mt-auto pt-6 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
-                    <Clock className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">
-                      {formatDuration(content.duration_seconds) || '0 min'}
-                    </span>
+                  <div className="flex items-center gap-4 text-slate-400 dark:text-slate-500">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wider">
+                        {formatDuration(content.duration_seconds) || '0 min'}
+                      </span>
+                    </div>
+                    {(content.average_rating ?? 0) > 0 && (
+                      <div className="flex items-center gap-1 text-amber-500">
+                        <Star className="w-4 h-4 fill-current" />
+                        <span className="text-xs font-bold uppercase tracking-wider">{content.average_rating}</span>
+                      </div>
+                    )}
                   </div>
+
                   
                   <Link 
                     href={`/contenidos/${content._id}`}

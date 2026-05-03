@@ -27,6 +27,8 @@ router.get('/users', authenticate, authorize('admin'), proxy(ZONA_A))
 router.post('/users', authenticate, authorize('admin'), proxy(ZONA_A))
 router.patch('/users/:id', authenticate, authorize('admin'), proxy(ZONA_A))
 router.post('/users/:id/toggle-block', authenticate, authorize('admin'), proxy(ZONA_A))
+router.post('/users/:id/approve-teacher', authenticate, authorize('admin'), proxy(ZONA_A))
+
 
 router.get('/users/:id/profile', authenticate, proxy(ZONA_A))
 router.patch('/users/:id/profile', authenticate, proxy(ZONA_A))

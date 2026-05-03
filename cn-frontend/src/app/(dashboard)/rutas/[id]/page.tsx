@@ -28,8 +28,10 @@ interface PathContent {
     title: string
     content_type: string
     duration_seconds: number | null
+    average_rating?: number
   }
 }
+
 
 interface FullContent {
   _id: string
@@ -242,6 +244,30 @@ function ContentViewer({
               {content.description && (
                 <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">{content.description}</p>
               )}
+
+              {/* Rich Text Body Content */}
+              {content.body_content && (
+                <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+                  <h3 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-indigo-500" /> Material de Estudio
+                  </h3>
+                  <div 
+                    className="editor-content text-slate-700 dark:text-slate-300 leading-relaxed text-sm"
+                    dangerouslySetInnerHTML={{ __html: content.body_content }}
+                  />
+                  <style jsx>{`
+                    .editor-content h1 { font-size: 1.5rem; font-weight: 900; margin-bottom: 1rem; color: #1e293b; }
+                    .editor-content h2 { font-size: 1.25rem; font-weight: 800; margin-bottom: 0.75rem; color: #334155; margin-top: 1.5rem; }
+                    .editor-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
+                    .editor-content li { margin-bottom: 0.25rem; }
+                    .editor-content a { color: #4f46e5; text-decoration: underline; font-weight: 600; }
+                    .dark .editor-content h1 { color: #f8fafc; }
+                    .dark .editor-content h2 { color: #f1f5f9; }
+                    .dark .editor-content a { color: #818cf8; }
+                  `}</style>
+                </div>
+              )}
+
 
               {/* Rating + avg */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
@@ -587,11 +613,21 @@ export default function RutaDetallePage({ params }: { params: { id: string } }) 
                                         </span>
                                       </>
                                     )}
+                                    {item.content_id.average_rating > 0 && (
+                                      <>
+                                        <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+                                        <span className="flex items-center gap-1 text-amber-500">
+                                          <Star className="w-3 h-3 fill-current" />
+                                          <span className="font-bold">{item.content_id.average_rating}</span>
+                                        </span>
+                                      </>
+                                    )}
                                     {isCompleted && (
-                                      <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                                      <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold ml-auto">
                                         <CheckCircle2 className="w-3.5 h-3.5" /> Completado
                                       </span>
                                     )}
+
                                   </div>
                                 </>
                               ) : (

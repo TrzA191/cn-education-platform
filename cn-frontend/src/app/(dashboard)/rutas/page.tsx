@@ -106,6 +106,13 @@ export default function RutasPage() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
   const [savingInterests, setSavingInterests] = useState(false)
   const [activeView, setActiveView] = useState<'active' | 'archived'>('active')
+  const [tagSearch, setTagSearch] = useState('')
+  const [pathDifficulty, setPathDifficulty] = useState('basico')
+  const [maxDurationMinutes, setMaxDurationMinutes] = useState('60')
+
+
+
+
 
   // Modal de confirmación
   const [confirmModal, setConfirmModal] = useState<{
@@ -146,15 +153,25 @@ export default function RutasPage() {
     }).catch(console.error)
   }, [])
 
+
+
   const handleSaveAndGenerate = async () => {
     setSavingInterests(true)
     setGenerateError('')
     try {
       await api.put('/api/tags/interests/me', { tagIds: selectedTagIds })
       setGenerating(true)
-      await api.post('/api/paths/generate')
+      await api.post('/api/paths/generate', { 
+        difficulty_level: pathDifficulty,
+        max_duration_minutes: maxDurationMinutes,
+        keywords: tagSearch
+      })
+
+
       setShowConfigModal(false)
+
       fetchPaths()
+
     } catch (err: any) {
       setGenerateError(err.response?.data?.error || 'Error al crear ruta')
     } finally {
@@ -421,41 +438,101 @@ export default function RutasPage() {
       {showConfigModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] border border-transparent dark:border-slate-800">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">Configura tus intereses</h2>
               <button onClick={() => setShowConfigModal(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto">
-              <p className="text-sm text-slate-500 mb-6">
-                Selecciona los temas que más te interesan para armar tu ruta a medida.
-              </p>
-              <div className="flex flex-wrap gap-2 mb-6">
-                {availableTags.map(tag => {
-                  const isSelected = selectedTagIds.includes(tag._id)
-                  return (
-                    <button
-                      key={tag._id}
-                      onClick={() => toggleTag(tag._id)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
-                        isSelected
-                          ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30'
-                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
-                      }`}
-                    >
-                      {tag.name}
-                    </button>
-                  )
-                })}
+            <div className="p-6 overflow-y-auto flex-1">
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Dificultad</label>
+                  <select
+                    value={pathDifficulty}
+                    onChange={(e) => setPathDifficulty(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  >
+                    <option value="basico">🌱 Básico</option>
+                    <option value="intermedio">🚀 Intermedio</option>
+                    <option value="avanzado">🔥 Avanzado</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider mb-2">Tiempo Máx (min)</label>
+                  <select
+                    value={maxDurationMinutes}
+                    onChange={(e) => setMaxDurationMinutes(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 text-sm font-bold text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                  >
+                    <option value="15">15 min</option>
+                    <option value="30">30 min</option>
+                    <option value="60">1 hora</option>
+                    <option value="120">2 horas</option>
+                    <option value="0">Sin límite</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Configura tus Intereses
+                </p>
+                {selectedTagIds.length > 0 && (
+                  <span className="text-[10px] font-black text-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-md uppercase">{selectedTagIds.length} Seleccionados</span>
+                )}
+              </div>
+              
+              <div className="relative mb-4">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Buscar temas o palabras clave..."
+                  value={tagSearch}
+                  onChange={(e) => setTagSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none text-sm text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="space-y-2 mb-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                {availableTags
+                  .filter(tag => tag.name.toLowerCase().includes(tagSearch.toLowerCase()))
+                  .map(tag => {
+                    const isSelected = selectedTagIds.includes(tag._id)
+                    return (
+                      <button
+                        key={tag._id}
+                        onClick={() => toggleTag(tag._id)}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all border ${
+                          isSelected
+                            ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/30'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-100 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${isSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 dark:border-slate-600'}`}>
+                            {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                          </div>
+                          <span>{tag.name}</span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                {availableTags.length > 0 && tagSearch && availableTags.filter(tag => tag.name.toLowerCase().includes(tagSearch.toLowerCase())).length === 0 && (
+                  <div className="text-center py-8 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <p className="text-sm text-slate-400">No hay etiquetas que coincidan con "{tagSearch}", pero buscaremos en los títulos.</p>
+                  </div>
+                )}
                 {availableTags.length === 0 && (
-                  <p className="text-sm text-slate-400">Cargando temas...</p>
+                  <div className="text-center py-12 text-slate-400">
+                    <p className="text-sm">No hay etiquetas disponibles.</p>
+                  </div>
                 )}
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3 shrink-0">
               <button
                 onClick={() => setShowConfigModal(false)}
                 className="px-5 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
@@ -465,7 +542,7 @@ export default function RutasPage() {
               </button>
               <button
                 onClick={handleSaveAndGenerate}
-                disabled={generating || savingInterests || selectedTagIds.length === 0}
+                disabled={generating || savingInterests || (selectedTagIds.length === 0 && !tagSearch)}
                 className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-2.5 px-6 rounded-xl shadow-sm transition-all"
               >
                 {(generating || savingInterests) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Route className="w-4 h-4" />}

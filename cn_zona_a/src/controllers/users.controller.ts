@@ -2,6 +2,12 @@ import { Request, Response } from "express";
 import { pool } from "../lib/db";
 import bcrypt from "bcryptjs";
 import { logSecurityEvent, logAudit } from "../services/security.service";
+import { 
+  sendTeacherApprovalNotification, 
+  sendAccountBlockNotification, 
+  sendAccountUnblockNotification 
+} from '../lib/email';
+
 
 export async function listUsers(req: Request, res: Response) {
   try {
@@ -150,8 +156,9 @@ export async function toggleBlockUser(req: Request, res: Response) {
 
   try {
     // Obtener estado actual
-    const userRes = await pool.request().input("id", id).query(`SELECT is_blocked, email FROM users WHERE id = @id`);
+    const userRes = await pool.request().input("id", id).query(`SELECT is_blocked, email, username FROM users WHERE id = @id`);
     if (userRes.recordset.length === 0) return res.status(404).json({ error: "Usuario no encontrado" });
+
     
     const currentUser = userRes.recordset[0];
     const isCurrentlyBlocked = Boolean(currentUser.is_blocked);
@@ -174,6 +181,15 @@ export async function toggleBlockUser(req: Request, res: Response) {
           INSERT INTO blocked_accounts (user_id, reason, blocked_at, is_active)
           VALUES (@user_id, @reason, GETUTCDATE(), 1)
         `);
+
+      // CERRAR SESIONES INMEDIATAMENTE
+      await pool.request()
+        .input("user_id", userIdNum)
+        .query(`UPDATE active_sessions SET is_revoked = 1 WHERE user_id = @user_id AND is_revoked = 0`);
+
+      // Enviar correo de bloqueo
+      sendAccountBlockNotification(currentUser.email, currentUser.username).catch(e => console.error('[toggleBlockUser] Mail Error:', e));
+
     } else {
       // DESBLOQUEO: Desactivar absolutamente todo lo anterior
       await pool.request()
@@ -185,7 +201,11 @@ export async function toggleBlockUser(req: Request, res: Response) {
           WHERE user_id = @user_id 
             AND (is_active = 1 OR blocked_until > GETUTCDATE())
         `);
+
+      // Enviar correo de desbloqueo
+      sendAccountUnblockNotification(currentUser.email, currentUser.username).catch(e => console.error('[toggleBlockUser] Mail Error:', e));
     }
+
 
 
 
@@ -219,6 +239,56 @@ export async function toggleBlockUser(req: Request, res: Response) {
     });
   }
 }
+
+export async function approveTeacher(req: Request, res: Response) {
+  const { id } = req.params;
+  const adminId = (req as any).user?.id;
+  const ipAddress = req.ip ?? 'unknown';
+
+  try {
+    const userRes = await pool.request().input("id", id).query(`SELECT id, role, email, username FROM users WHERE id = @id`);
+    if (userRes.recordset.length === 0) return res.status(404).json({ error: "Usuario no encontrado" });
+    
+    const user = userRes.recordset[0];
+    if (user.role !== 'pending_teacher') {
+      return res.status(400).json({ error: "El usuario no tiene una solicitud de docente pendiente" });
+    }
+
+    await pool.request()
+      .input("id", id)
+      .query(`UPDATE users SET role = 'teacher' WHERE id = @id`);
+
+    // Enviar notificación por correo (en segundo plano)
+    sendTeacherApprovalNotification(user.email, user.username).catch(err => {
+      console.error('[approveTeacher] Error enviando correo:', err);
+    });
+
+    await logAudit({
+
+      userId: adminId,
+      tableName: 'users',
+      recordId: Number(id),
+      action: 'UPDATE',
+      oldValues: { role: 'pending_teacher' },
+      newValues: { role: 'teacher' },
+      ipAddress
+    });
+
+    await logSecurityEvent({
+      userId: adminId,
+      eventType: 'login_success',
+      description: `Admin [${adminId}] aprobó solicitud de docente para: ${user.email}`,
+      ipAddress,
+      severity: 'medio'
+    });
+
+    res.json({ message: "Docente aprobado correctamente" });
+  } catch (err) {
+    console.error('[approveTeacher]', err);
+    res.status(500).json({ error: "Error al aprobar docente" });
+  }
+}
+
 
 
 

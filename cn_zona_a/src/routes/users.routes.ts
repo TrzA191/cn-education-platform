@@ -5,6 +5,7 @@ import {
   createUser, 
   updateUser, 
   toggleBlockUser,
+  approveTeacher,
   getProfile, 
   updateProfile, 
   listSecurityLogs, 
@@ -19,6 +20,7 @@ router.get("/", auth("admin"), listUsers);
 router.post("/", auth("admin"), createUser);
 router.patch("/:id", auth("admin"), updateUser);
 router.post("/:id/toggle-block", auth("admin"), toggleBlockUser);
+router.post("/:id/approve-teacher", auth("admin"), approveTeacher);
 
 
 // Auditoría (Admin)

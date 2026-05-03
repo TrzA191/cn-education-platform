@@ -231,6 +231,31 @@ export default function ContenidoDetallePage({ params }: { params: { id: string 
           )}
         </div>
       </div>
+      
+      {content.body_content && (
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 p-10 mb-8">
+          <h2 className="text-xl font-black text-slate-800 dark:text-white mb-8 flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+              <FileText className="w-5 h-5" />
+            </div>
+            Material de Estudio y Notas
+          </h2>
+          <div 
+            className="editor-content text-slate-700 dark:text-slate-300 leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: content.body_content }}
+          />
+          <style jsx>{`
+            .editor-content h1 { font-size: 2.25rem; font-weight: 900; margin-bottom: 1.5rem; color: #1e293b; line-height: 1.2; }
+            .editor-content h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 1.25rem; color: #334155; margin-top: 2rem; }
+            .editor-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1.5rem; }
+            .editor-content li { margin-bottom: 0.5rem; }
+            .editor-content a { color: #4f46e5; text-decoration: underline; font-weight: 600; }
+            .dark .editor-content h1 { color: #f8fafc; }
+            .dark .editor-content h2 { color: #f1f5f9; }
+            .dark .editor-content a { color: #818cf8; }
+          `}</style>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         

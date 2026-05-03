@@ -138,6 +138,7 @@ export const removePathContent = async (req: Request, res: Response): Promise<vo
 export const generateSystemPath = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id
+    const { difficulty_level, max_duration_minutes } = req.body
 
     const interests = await UserInterest.find({ user_id: userId }).populate('tag_id')
     if (!interests || interests.length === 0) {
@@ -153,33 +154,85 @@ export const generateSystemPath = async (req: Request, res: Response): Promise<v
     const fullTagList = tagNames.join(', ')
 
     const tagIds = interests.map(i => i.tag_id)
-    const contents = await MultimediaContent.find({
-      tags: { $in: tagIds },
+    
+    // Filtro base: tags O palabras clave en el título para TODOS los intereses
+    const titleQueries = tagNames.map(name => ({ title: { $regex: name, $options: 'i' } }))
+    
+    // Si el usuario envió palabras clave personalizadas, las añadimos a la búsqueda
+    if (req.body.keywords) {
+      const customKeywords = req.body.keywords.split(',').map((k: string) => k.trim()).filter(Boolean)
+      customKeywords.forEach((k: string) => {
+        titleQueries.push({ title: { $regex: k, $options: 'i' } })
+      })
+    }
+
+    const contentQuery: any = {
+      $or: [
+        { tags: { $in: tagIds } },
+        ...titleQueries
+      ],
       status: 'active'
-    })
+    }
+
+
+    // Si el usuario especificó dificultad, filtramos por ella
+    if (difficulty_level) {
+      contentQuery.difficulty_level = difficulty_level
+    }
+
+    let contents = await MultimediaContent.find(contentQuery)
+
+    // Filtro de duración si el usuario lo solicita
+    if (max_duration_minutes) {
+      const maxSeconds = parseInt(max_duration_minutes) * 60
+      contents = contents.filter(c => (c.duration_seconds || 0) <= maxSeconds)
+    }
 
     if (contents.length === 0) {
-      res.status(404).json({ error: 'No hay contenidos suficientes para tus intereses.' })
+      res.status(404).json({ 
+        error: `No hay contenidos suficientes para tus intereses ${difficulty_level ? `en nivel ${difficulty_level}` : ''}${max_duration_minutes ? ` de menos de ${max_duration_minutes} min` : ''}.` 
+      })
       return
     }
 
-    // Ordenar por dificultad: básico -> intermedio -> avanzado
+
+    /**
+     * ALGORITMO DE SECUENCIACIÓN LÓGICA (Pathly Engine)
+     * 1. Prioridad por Dificultad (Básico -> Intermedio -> Avanzado)
+     * 2. Dentro de cada nivel, los "Introductorios" van primero
+     * 3. Luego por Calificación (Mejor puntuados primero)
+     * 4. Luego por Fecha (Más recientes primero)
+     */
     const difficultyOrder: Record<string, number> = { 'basico': 1, 'intermedio': 2, 'avanzado': 3 }
     const sortedContents = contents.sort((a, b) => {
+      // 1. Dificultad
       const diffA = a.difficulty_level ? difficultyOrder[a.difficulty_level] : 0
       const diffB = b.difficulty_level ? difficultyOrder[b.difficulty_level] : 0
-      return diffA - diffB
+      if (diffA !== diffB) return diffA - diffB
+
+      // 2. Introductorio (true primero)
+      if (a.is_introductory && !b.is_introductory) return -1
+      if (!a.is_introductory && b.is_introductory) return 1
+
+      // 3. Rating (Descendente)
+      if ((b.average_rating || 0) !== (a.average_rating || 0)) {
+        return (b.average_rating || 0) - (a.average_rating || 0)
+      }
+
+      // 4. Fecha (Descendente)
+      return b.created_at.getTime() - a.created_at.getTime()
     })
 
     const path = await LearningPath.create({
-      title: tagNames.length > 0 ? `Ruta de: ${displayTags}` : 'Ruta Sugerida: Basada en tus intereses',
+      title: tagNames.length > 0 ? `Ruta de: ${displayTags}` : 'Ruta Sugerida',
       description: tagNames.length > 0 
         ? `Ruta personalizada enfocada en: ${fullTagList}.` 
         : 'Generada automáticamente para mejorar tus habilidades.',
       creator_id: userId,
-      difficulty_level: 'basico', // O un promedio
+      difficulty_level: difficulty_level || 'basico',
       is_system_generated: true
     })
+
 
     let sequence = 1
     const pathContents = await Promise.all(sortedContents.map(c =>

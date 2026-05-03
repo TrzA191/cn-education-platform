@@ -96,16 +96,23 @@ export async function register(req: Request, res: Response) {
       if (isUser) return res.status(409).json({ error: 'El nombre de usuario ya está en uso. Elige otro.' });
     }
 
+    // Lógica de aprobación para docentes
+    let finalRole = role || 'student';
+    if (finalRole === 'teacher') {
+      finalRole = 'pending_teacher';
+    }
+
     const result = await pool.request()
       .input('username', username)
       .input('email',    email)
       .input('password', hash)
-      .input('role',     role || 'student')
+      .input('role',     finalRole)
       .query(`
         INSERT INTO users (username, email, password_hash, role)
         OUTPUT INSERTED.id
         VALUES (@username, @email, @password, @role)
       `)
+
 
     const userId = result.recordset[0].id
 
@@ -180,9 +187,10 @@ export async function login(req: Request, res: Response) {
         severity   : 'alto',
       })
       return res.status(403).json({
-        error: `Cuenta bloqueada temporalmente. Intenta en ${minutesLeft} minutos.`,
+        error: `Cuenta bloqueada temporalmente`,
         blocked: true,
       })
+
     }
 
     // 4. Verificar contraseña
@@ -223,7 +231,7 @@ export async function login(req: Request, res: Response) {
           ipAddress, userAgent, severity: 'critico', status: 'en_proceso',
         })
         return res.status(403).json({
-          error  : `Cuenta bloqueada por múltiples intentos fallidos. Intenta de nuevo en ${blockMinutes} minutos.`,
+          error  : `Cuenta bloqueada temporalmente`,
           blocked: true,
         })
       }

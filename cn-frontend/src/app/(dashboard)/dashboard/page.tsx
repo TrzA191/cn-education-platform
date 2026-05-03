@@ -13,8 +13,13 @@ import {
   Video,
   FileBox,
   Map as MapIcon,
-  ChevronRight
+  ChevronRight,
+  Rocket,
+  Activity,
+  Loader2
 } from 'lucide-react'
+
+
 
 interface Tag {
   _id: string
@@ -74,11 +79,24 @@ function ContentIcon({ type }: { type: string }) {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuthStore()
+  const { user, setUser } = useAuthStore()
   const [tags, setTags] = useState<Tag[]>([])
   const [contents, setContents] = useState<Content[]>([])
   const [paths, setPaths] = useState<Path[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const checkStatus = async () => {
+    setRefreshing(true)
+    try {
+      const res = await api.get('/api/auth/me')
+      setUser(res.data)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -102,7 +120,34 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-[1400px] mx-auto animate-in slide-in-from-bottom-4 duration-500 fade-in">
+      {/* Banner de Estado Pendiente para Docentes */}
+      {user?.role === 'pending_teacher' && (
+        <div className="mb-8 p-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/5 border border-amber-200 dark:border-amber-500/20 rounded-3xl shadow-sm animate-in fade-in zoom-in duration-500">
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center shrink-0">
+              <Rocket className="w-8 h-8 text-amber-600 dark:text-amber-400 animate-bounce" />
+            </div>
+            <div className="text-center sm:text-left flex-1">
+              <h3 className="text-xl font-bold text-amber-900 dark:text-amber-200">🚀 ¡Tu solicitud de docente está en revisión!</h3>
+              <p className="text-amber-800 dark:text-amber-300/80 font-medium mt-1">
+                Nuestro equipo administrativo está validando tu perfil. Mientras tanto, puedes explorar la plataforma como <b>estudiante</b>. Te avisaremos por correo una vez seas aprobado.
+              </p>
+              <button 
+                onClick={checkStatus}
+                disabled={refreshing}
+                className="mt-4 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-amber-600/20 flex items-center gap-2"
+              >
+                {refreshing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Activity className="w-3 h-3" />}
+                Verificar si ya fui aprobado
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
       {/* Overview Stats */}
+
       <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Overview</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard

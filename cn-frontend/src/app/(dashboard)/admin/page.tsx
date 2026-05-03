@@ -12,7 +12,9 @@ import {
   Search,
   CheckCircle2,
   XCircle,
+  X,
   KeyRound,
+
   ShieldHalf,
   EyeOff,
   ShieldCheck,
@@ -91,10 +93,11 @@ const eventTypeLabel: Record<string, string> = {
 }
 
 const roleColor: Record<string, string> = {
-  admin: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20',
   teacher: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20',
   student: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+  pending_teacher: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
 }
+
 
 const passwordRules = [
   { label: 'Mínimo 8 caracteres', test: (p: string) => p.length >= 8 },
@@ -323,6 +326,40 @@ export default function AdminPage() {
     }
   }
 
+  const handleApproveTeacherRequest = (user: User) => {
+    setConfirmModal({
+      open: true,
+      type: 'success',
+      title: 'Aprobar Docente',
+      message: `¿Deseas autorizar a ${user.username} como docente oficial de Pathly? Esto le otorgará permisos para subir contenido y gestionar alumnos.`,
+      action: () => executeApproveTeacher(user.id)
+    })
+  }
+
+  const executeApproveTeacher = async (id: number) => {
+    setActionLoading(true)
+    try {
+      await api.post(`/api/users/${id}/approve-teacher`)
+      setConfirmModal({
+        open: true,
+        type: 'success',
+        title: '¡Docente Aprobado!',
+        message: 'El usuario ahora tiene todos los privilegios de docente.'
+      })
+      fetchAll()
+    } catch (err: any) {
+      setConfirmModal({
+        open: true,
+        type: 'error',
+        title: 'Error al Aprobar',
+        message: err.response?.data?.error || 'No pudimos procesar la solicitud.'
+      })
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+
 
 
   const filteredLogs = logs.filter(l => {
@@ -454,6 +491,15 @@ export default function AdminPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex gap-2 justify-end">
+                          {u.role === 'pending_teacher' && (
+                            <button 
+                              onClick={() => handleApproveTeacherRequest(u)}
+                              className="p-2 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg transition-all animate-pulse"
+                              title="Aprobar Solicitud"
+                            >
+                              <UserCheck className="w-4 h-4" />
+                            </button>
+                          )}
                           <button 
                             onClick={() => handleOpenEdit(u)}
                             className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 rounded-lg transition-all"
@@ -821,23 +867,38 @@ export default function AdminPage() {
 
       {/* --- REUSABLE CONFIRMATION MODAL --- */}
       {confirmModal.open && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 slide-in-from-bottom-2 duration-300">
-              <div className="p-8 text-center">
-                 <div className={`w-20 h-20 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-sm ${
-                   confirmModal.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700' :
-                   confirmModal.type === 'delete' ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-700' : 'bg-amber-50 dark:bg-amber-500/10 text-amber-700'
-                 }`}>
-                    {confirmModal.type === 'success' ? <UserCheck className="w-10 h-10" /> :
-                     confirmModal.type === 'delete' ? <AlertTriangle className="w-10 h-10" /> : <ShieldAlert className="w-10 h-10" />}
-                 </div>
-                 <h4 className="text-xl font-black text-slate-900 dark:text-white mb-2">{confirmModal.title}</h4>
-                 <p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed px-2">
-                    {confirmModal.message}
-                 </p>
-              </div>
+        <div 
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300"
+          onClick={() => setConfirmModal({...confirmModal, open: false})}
+        >
+           <div 
+            className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 slide-in-from-bottom-2 duration-300"
+            onClick={(e) => e.stopPropagation()}
+           >
+
+                  <button 
+                    onClick={() => setConfirmModal({...confirmModal, open: false})}
+                    className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+
+                  <div className="p-8 text-center">
+                     <div className={`w-20 h-20 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-sm ${
+                       confirmModal.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700' :
+                       confirmModal.type === 'delete' ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-700' : 'bg-amber-50 dark:bg-amber-500/10 text-amber-700'
+                     }`}>
+                        {confirmModal.type === 'success' ? <UserCheck className="w-10 h-10" /> :
+                         confirmModal.type === 'delete' ? <AlertTriangle className="w-10 h-10" /> : <ShieldAlert className="w-10 h-10" />}
+                     </div>
+                     <h4 className="text-xl font-black text-slate-900 dark:text-white mb-2">{confirmModal.title}</h4>
+                     <p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed px-2">
+                        {confirmModal.message}
+                     </p>
+                  </div>
+
               <div className="p-6 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-50 dark:border-slate-800 flex gap-3">
-                 {confirmModal.type === 'delete' ? (
+                 {(confirmModal.type === 'delete' || (confirmModal.title.includes('Aprobar') && !confirmModal.title.includes('¡'))) ? (
                    <>
                     <button 
                       onClick={() => setConfirmModal({...confirmModal, open: false})}
@@ -856,8 +917,10 @@ export default function AdminPage() {
                         : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20'
                       }`}
                     >
-                      {confirmModal.title.includes('Bloquear') ? 'Sí, Bloquear' : 'Sí, Restaurar'}
+                      {confirmModal.title.includes('Bloquear') ? 'Sí, Bloquear' : 
+                       confirmModal.title.includes('Aprobar') ? 'Aprobar Ahora' : 'Sí, Restaurar'}
                     </button>
+
 
                    </>
                  ) : (
