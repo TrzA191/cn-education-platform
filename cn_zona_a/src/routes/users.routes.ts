@@ -10,7 +10,9 @@ import {
   updateProfile, 
   listSecurityLogs, 
   listFailedAttempts,
-  listAuditTrail
+  listAuditTrail,
+  getBulkProfiles,
+  getIdsByEmails
 } from "../controllers/users.controller";
 
 const router = Router();
@@ -28,7 +30,9 @@ router.get("/security-logs", auth("admin"), listSecurityLogs);
 router.get("/failed-attempts", auth("admin"), listFailedAttempts);
 router.get("/audit-trail", auth("admin"), listAuditTrail);
 
-// Perfil (Cualquier usuario autenticado)
+// Perfiles (Cualquier usuario autenticado)
+router.post("/bulk-profiles", auth(), getBulkProfiles);
+router.post("/by-emails", auth(), getIdsByEmails);
 router.get("/:id/profile", auth(), getProfile);
 router.patch("/:id/profile", auth(), updateProfile);
 

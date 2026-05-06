@@ -13,18 +13,23 @@ import {
   PlaySquare,
   MessageSquare,
   Send,
-  CheckCircle2
+  CheckCircle2,
+  ShieldCheck,
+  MapIcon,
+  Award
 } from 'lucide-react'
 
 interface Content {
   _id: number
   title: string
   description: string
+  body_content?: string
   content_type: string
   duration_seconds: number | null
   status: string
   cdn_url: string
   blob_storage_url: string
+  author_id: number
 }
 
 interface Comment {
@@ -36,6 +41,12 @@ interface Comment {
 
 interface Rating {
   rating_stars: number
+}
+
+interface Assessment {
+  _id: string
+  title: string
+  passing_score: number
 }
 
 function formatDuration(seconds: number) {
@@ -58,12 +69,23 @@ export default function ContenidoDetallePage({ params }: { params: { id: string 
   const { user } = useAuthStore()
 
   const [content, setContent] = useState<Content | null>(null)
+  const [assessment, setAssessment] = useState<Assessment | null>(null)
+  const [showAssessmentForm, setShowAssessmentForm] = useState(false)
+  const [examScore, setExamScore] = useState<number | null>(null)
+  
+  const [newAssessment, setNewAssessment] = useState({ title: '', passing_score: 80 })
+  const [takingExam, setTakingExam] = useState(false)
+  const [examResult, setExamResult] = useState<{ score: number, passed: boolean } | null>(null)
+
+  const [authorProfile, setAuthorProfile] = useState<any>(null)
+  const [commenterProfiles, setCommenterProfiles] = useState<Record<string, any>>({})
   const [comments, setComments] = useState<Comment[]>([])
   const [myRating, setMyRating] = useState(0)
   const [avgRating, setAvgRating] = useState(0)
   const [newComment, setNewComment] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [showForceRating, setShowForceRating] = useState(false)
 
   useEffect(() => {
     fetchAll()
@@ -71,22 +93,75 @@ export default function ContenidoDetallePage({ params }: { params: { id: string 
 
   const fetchAll = async () => {
     try {
-      const [contentRes, commentsRes, ratingsRes] = await Promise.all([
-        api.get(`/api/contents/${id}`),
+      const contentRes = await api.get(`/api/contents/${id}`)
+      const contentData = contentRes.data?.data || contentRes.data
+      setContent(contentData)
+
+      const [commentsRes, ratingsRes, profileRes, assessmentRes] = await Promise.all([
         api.get(`/api/comments/${id}`),
         api.get(`/api/ratings/${id}`),
+        api.get(`/api/users/${contentData.author_id}/profile`).catch(() => null),
+        api.get(`/api/assessments/content/${id}`).catch(() => null)
       ])
-      setContent(contentRes.data?.data || contentRes.data)
-      setComments(commentsRes.data?.data || commentsRes.data || [])
-      const ratings: Rating[] = ratingsRes.data?.data || ratingsRes.data || []
-      if (ratings.length > 0) {
-        const avg = ratings.reduce((a, r) => a + r.rating_stars, 0) / ratings.length
-        setAvgRating(Math.round(avg * 10) / 10)
+
+      if (profileRes?.data) setAuthorProfile(profileRes.data)
+      if (assessmentRes?.data) setAssessment(assessmentRes.data)
+
+      const commentsData = commentsRes.data?.data || commentsRes.data || []
+      setComments(commentsData)
+      
+      const userIds = Array.from(new Set(commentsData.map((c: any) => c.user_id)))
+      if (userIds.length > 0) {
+        api.post('/api/users/bulk-profiles', { ids: userIds })
+          .then(res => {
+            const profilesMap: Record<string, any> = {}
+            res.data.forEach((p: any) => {
+              profilesMap[p.user_id] = p
+            })
+            setCommenterProfiles(profilesMap)
+          })
+          .catch(console.error)
+      }
+
+      const ratingData = ratingsRes.data?.data || ratingsRes.data
+      if (ratingData) {
+        setAvgRating(parseFloat(ratingData.average || 0))
+        const myR = ratingData.ratings?.find((r: any) => String(r.user_id) === String(user?.userId))
+        if (myR) setMyRating(myR.rating_stars)
       }
     } catch (err) {
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCreateAssessment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newAssessment.title.trim()) return
+    try {
+      const res = await api.post('/api/assessments', {
+        content_id: id,
+        ...newAssessment
+      })
+      setAssessment(res.data)
+      setShowAssessmentForm(false)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleSubmitAssessment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (examScore === null || !assessment) return
+    try {
+      const res = await api.post(`/api/assessments/${assessment._id}/results`, {
+        score: examScore
+      })
+      setExamResult(res.data)
+      setTakingExam(false)
+    } catch (err) {
+      console.error(err)
     }
   }
 
@@ -111,6 +186,7 @@ export default function ContenidoDetallePage({ params }: { params: { id: string 
 
   const handleRating = async (stars: number) => {
     setMyRating(stars)
+    setShowForceRating(false)
     try {
       await api.post('/api/ratings', {
         content_id: id,
@@ -120,6 +196,32 @@ export default function ContenidoDetallePage({ params }: { params: { id: string 
       fetchAll()
     } catch (err) {
       console.error(err)
+    }
+  }
+
+  const handleComplete = async () => {
+    try {
+      // Registrar que completó el video
+      if (content?.duration_seconds) {
+        await api.post('/api/progress', {
+          content_id: id,
+          watched_seconds: content.duration_seconds
+        })
+      } else {
+        // Fallback for PDF or content without duration
+        await api.post('/api/progress', {
+          content_id: id,
+          watched_seconds: 100 // Arbitrary > 0
+        })
+      }
+    } catch (err) {
+      console.error('Error saving progress:', err)
+    }
+
+    if (myRating === 0) {
+      setShowForceRating(true)
+    } else {
+      alert('¡Clase completada!')
     }
   }
 
@@ -205,7 +307,7 @@ export default function ContenidoDetallePage({ params }: { params: { id: string 
                   allowFullScreen
                 />
               ) : (
-                <video controls className="w-full h-full object-cover" src={content.cdn_url}>
+                <video controls onEnded={handleComplete} className="w-full h-full object-cover" src={content.cdn_url}>
                   Tu navegador no soporta video HTML5.
                 </video>
               )}
@@ -229,7 +331,109 @@ export default function ContenidoDetallePage({ params }: { params: { id: string 
               </div>
             </a>
           )}
+
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={handleComplete}
+              className="flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-600/20 transition-all"
+            >
+              <CheckCircle2 className="w-5 h-5" />
+              Marcar como Completado
+            </button>
+          </div>
         </div>
+      </div>
+
+      {/* SECCIÓN DE EXAMEN / EVALUACIÓN */}
+      <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 p-10 mb-8">
+        <h2 className="text-xl font-black text-slate-800 dark:text-white mb-6 flex items-center gap-3">
+          <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+            <Award className="w-5 h-5" />
+          </div>
+          Evaluación Final
+        </h2>
+
+        {/* MODO DOCENTE (Autor) */}
+        {user?.userId === content.author_id ? (
+          <div>
+            {!assessment && !showAssessmentForm ? (
+              <div className="text-center py-8 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
+                <p className="text-slate-500 font-medium mb-4">No has creado una evaluación para esta clase.</p>
+                <button onClick={() => setShowAssessmentForm(true)} className="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors">
+                  + Crear Examen Final
+                </button>
+              </div>
+            ) : showAssessmentForm ? (
+              <form onSubmit={handleCreateAssessment} className="space-y-4 max-w-md bg-slate-50 dark:bg-slate-800/40 p-6 rounded-3xl border border-slate-100 dark:border-slate-700">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Título del Examen</label>
+                  <input type="text" required value={newAssessment.title} onChange={e => setNewAssessment({...newAssessment, title: e.target.value})} className="w-full mt-2 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="Ej. Quiz sobre React" />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Calificación Mínima Aprobatoria (%)</label>
+                  <input type="number" required min={0} max={100} value={newAssessment.passing_score} onChange={e => setNewAssessment({...newAssessment, passing_score: Number(e.target.value)})} className="w-full mt-2 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 text-sm" />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button type="button" onClick={() => setShowAssessmentForm(false)} className="px-4 py-2 text-sm font-bold text-slate-500 bg-white dark:bg-slate-800 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700">Cancelar</button>
+                  <button type="submit" className="flex-1 px-4 py-2 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-sm">Guardar Examen</button>
+                </div>
+              </form>
+            ) : (
+              <div className="p-6 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 rounded-3xl flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-emerald-800 dark:text-emerald-400 text-lg">{assessment?.title}</p>
+                  <p className="text-sm font-medium text-emerald-600 dark:text-emerald-500 mt-1">El alumno debe sacar {assessment?.passing_score}% para aprobar.</p>
+                </div>
+                <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-sm">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* MODO ESTUDIANTE */
+          <div>
+            {!assessment ? (
+              <p className="text-slate-500 italic">El docente no ha asignado un examen para esta clase.</p>
+            ) : examResult ? (
+              <div className={`p-8 rounded-3xl border text-center ${examResult.passed ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20' : 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20'}`}>
+                <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-4 shadow-sm ${examResult.passed ? 'bg-white text-emerald-500 dark:bg-slate-900' : 'bg-white text-rose-500 dark:bg-slate-900'}`}>
+                  {examResult.passed ? <Award className="w-8 h-8" /> : <PlaySquare className="w-8 h-8" />}
+                </div>
+                <h3 className={`text-2xl font-black mb-2 ${examResult.passed ? 'text-emerald-800 dark:text-emerald-400' : 'text-rose-800 dark:text-rose-400'}`}>
+                  {examResult.passed ? '¡Aprobado!' : 'Intenta de nuevo'}
+                </h3>
+                <p className="text-lg font-medium opacity-80 mb-6">Tu puntuación: <strong>{examResult.score}%</strong></p>
+                {!examResult.passed && (
+                  <button onClick={() => setExamResult(null)} className="px-6 py-2 bg-white dark:bg-slate-900 border border-current font-bold rounded-xl hover:opacity-80 transition-opacity">Volver a intentar</button>
+                )}
+              </div>
+            ) : takingExam ? (
+              <form onSubmit={handleSubmitAssessment} className="p-8 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700 rounded-3xl max-w-lg mx-auto">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 text-center">{assessment.title}</h3>
+                <div className="space-y-4 mb-8">
+                  <p className="text-sm text-slate-500 font-medium text-center bg-white dark:bg-slate-900 p-4 rounded-xl shadow-sm">
+                    Para propósitos de esta demo, ingresa tu puntuación simulada (0-100):
+                  </p>
+                  <input type="number" required min={0} max={100} value={examScore ?? ''} onChange={e => setExamScore(Number(e.target.value))} className="w-full text-center text-3xl font-black px-4 py-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-4 focus:ring-indigo-500/20 text-indigo-600 dark:text-indigo-400" placeholder="0 - 100" />
+                </div>
+                <div className="flex gap-4">
+                  <button type="button" onClick={() => setTakingExam(false)} className="px-6 py-3 font-bold text-slate-500 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800">Cancelar</button>
+                  <button type="submit" className="flex-1 px-6 py-3 font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-md">Enviar Resultados</button>
+                </div>
+              </form>
+            ) : (
+              <div className="p-8 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 rounded-3xl flex flex-col items-center text-center">
+                <Award className="w-12 h-12 text-indigo-500 mb-4" />
+                <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-300 mb-2">{assessment.title}</h3>
+                <p className="text-slate-600 dark:text-slate-400 font-medium mb-6 max-w-sm">Demuestra lo que has aprendido. Necesitas un {assessment.passing_score}% para aprobar.</p>
+                <button onClick={() => setTakingExam(true)} className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-md hover:bg-indigo-700 hover:shadow-lg hover:-translate-y-0.5 transition-all">
+                  Iniciar Evaluación
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       
       {content.body_content && (
@@ -259,8 +463,43 @@ export default function ContenidoDetallePage({ params }: { params: { id: string 
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         
-        {/* Ratings Section */}
-        <div className="md:col-span-1">
+        {/* Profile & Ratings Column */}
+        <div className="md:col-span-1 space-y-6">
+          {/* Author Profile */}
+          {authorProfile && (
+            <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 p-6">
+              <h2 className="font-bold text-slate-800 dark:text-white text-lg mb-4 flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-indigo-500" /> Creador
+              </h2>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-14 h-14 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-black text-xl shadow-md border-4 border-white dark:border-slate-800">
+                  {authorProfile.name?.[0]?.toUpperCase() || '?'}
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900 dark:text-white leading-tight">
+                    {authorProfile.name || 'Docente'}
+                  </p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 flex items-center gap-1">
+                    {authorProfile.country ? (
+                      <>
+                        <MapIcon className="w-3 h-3" />
+                        {authorProfile.country}
+                      </>
+                    ) : 'Docente Experto'}
+                  </p>
+                </div>
+              </div>
+              {authorProfile.bio && (
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 italic leading-relaxed">
+                    "{authorProfile.bio}"
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Ratings Section */}
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 p-6 sticky top-28">
             <h2 className="font-bold text-slate-800 dark:text-white text-lg mb-1">Tu Valoración</h2>
             <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-6">¿Te sirvió este material?</p>
@@ -319,28 +558,68 @@ export default function ContenidoDetallePage({ params }: { params: { id: string 
               </div>
             ) : (
               <div className="space-y-6">
-                {comments.map(c => (
-                  <div key={c._id} className="flex gap-4 group">
-                    <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-500/10 transition-colors">
-                      <span className="text-sm font-bold text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{String(c.user_id)[0] || 'U'}</span>
-                    </div>
-                    <div className="flex-1 bg-slate-50/80 dark:bg-slate-800/40 rounded-2xl rounded-tl-none p-4 border border-slate-100 dark:border-slate-800">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-sm font-bold text-slate-800 dark:text-white">Estudiante #{c.user_id}</span>
-                        <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-100 dark:border-slate-700 shadow-sm">
-                          {new Date(c.created_at).toLocaleDateString('es-MX', { month: 'short', day: 'numeric'})}
-                        </span>
+                {comments.map(c => {
+                  const profile = commenterProfiles[c.user_id] || {}
+                  const name = profile.name || `Estudiante #${c.user_id}`
+                  const initial = profile.name ? profile.name[0].toUpperCase() : (String(c.user_id)[0] || 'U')
+
+                  return (
+                    <div key={c._id} className="flex gap-4 group">
+                      <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-500/10 transition-colors shadow-sm">
+                        <span className="text-sm font-bold text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{initial}</span>
                       </div>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">{c.body}</p>
+                      <div className="flex-1 bg-slate-50/80 dark:bg-slate-800/40 rounded-2xl rounded-tl-none p-4 border border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <span className="text-sm font-bold text-slate-800 dark:text-white">{name}</span>
+                          {profile.country && (
+                            <span className="text-[10px] font-bold text-indigo-500 uppercase flex items-center gap-1">
+                              <MapIcon className="w-3 h-3" /> {profile.country}
+                            </span>
+                          )}
+                          <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-100 dark:border-slate-700 shadow-sm ml-auto">
+                            {new Date(c.created_at).toLocaleDateString('es-MX', { month: 'short', day: 'numeric'})}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">{c.body}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
         </div>
 
       </div>
+
+      {/* Force Rating Modal */}
+      {showForceRating && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl max-w-md w-full p-8 text-center animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800">
+            <div className="w-20 h-20 bg-amber-50 dark:bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Star className="w-10 h-10 text-amber-500 fill-amber-500" />
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">¡Felicidades por terminar!</h2>
+            <p className="text-slate-600 dark:text-slate-400 font-medium mb-8">
+              Para continuar, por favor califica qué tan útil te pareció este contenido.
+            </p>
+            <div className="flex items-center justify-center gap-2 mb-4">
+              {[1, 2, 3, 4, 5].map(star => (
+                <button 
+                  key={star} 
+                  onClick={() => handleRating(star)}
+                  className="transition-transform hover:scale-125 focus:outline-none p-1"
+                >
+                  <Star className={`w-10 h-10 ${star <= myRating ? 'text-amber-400 fill-amber-400 drop-shadow-sm' : 'text-slate-200 dark:text-slate-700'}`} />
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-6">
+              Tu opinión es obligatoria
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

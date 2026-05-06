@@ -16,22 +16,36 @@ export const saveProgress = async (req: Request, res: Response): Promise<void> =
       return
     }
 
+    let existingProgress = await UserProgress.findOne({ user_id, content_id })
+
     const completion_percentage = content.duration_seconds
       ? Math.min((watched_seconds / content.duration_seconds) * 100, 100)
       : 0
 
-    const progress = await UserProgress.findOneAndUpdate(
-      { user_id, content_id },
-      {
+    const is_completed_now = completion_percentage >= 90
+
+    if (existingProgress) {
+      // Evitar que el progreso retroceda si el estudiante retrasa el video
+      const newMaxPercentage = Math.max(existingProgress.completion_percentage || 0, completion_percentage)
+      const newMaxSeconds = Math.max(existingProgress.watched_seconds || 0, watched_seconds)
+      
+      existingProgress.watched_seconds = newMaxSeconds
+      existingProgress.completion_percentage = newMaxPercentage
+      existingProgress.is_completed = existingProgress.is_completed || is_completed_now
+      existingProgress.last_watched_at = new Date()
+      await existingProgress.save()
+      res.json(existingProgress)
+    } else {
+      const newProgress = await UserProgress.create({
+        user_id,
+        content_id,
         watched_seconds,
         completion_percentage,
-        is_completed: completion_percentage >= 90,
-        last_watched_at: new Date(),
-      },
-      { upsert: true, new: true }
-    )
-
-    res.json(progress)
+        is_completed: is_completed_now,
+        last_watched_at: new Date()
+      })
+      res.json(newProgress)
+    }
   } catch (error) {
     console.error('[saveProgress]', error)
     res.status(500).json({ error: 'Error interno del servidor' })

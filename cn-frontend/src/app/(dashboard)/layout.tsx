@@ -13,59 +13,98 @@ import {
   Shield,
   LogOut,
   Bell,
-  GraduationCap
+  GraduationCap,
+  FileText,
+  BarChart3
 } from 'lucide-react'
 
-const getNavItems = (role: string) => {
-  const base = [
+const getNavSections = (role: string) => {
+  const sections = [
     {
-      href: '/dashboard',
-      label: 'Inicio',
-      icon: <LayoutDashboard className="w-5 h-5" />,
+      title: 'Aprendizaje',
+      items: [
+        {
+          href: '/dashboard',
+          label: 'Inicio',
+          icon: <LayoutDashboard className="w-5 h-5" />,
+        },
+        {
+          href: '/contenidos',
+          label: 'Catálogo',
+          icon: <BookOpen className="w-5 h-5" />,
+        },
+        {
+          href: '/rutas',
+          label: 'Rutas',
+          icon: <MapIcon className="w-5 h-5" />,
+        },
+        {
+          href: '/mis-cursos',
+          label: 'Mi Estudio',
+          icon: <GraduationCap className="w-5 h-5" />,
+        },
+        {
+          href: '/notificaciones',
+          label: 'Notificaciones',
+          icon: <Bell className="w-5 h-5" />,
+        },
+      ]
     },
     {
-      href: '/contenidos',
-      label: 'Contenidos',
-      icon: <BookOpen className="w-5 h-5" />,
-    },
-    {
-      href: '/rutas',
-      label: 'Rutas de aprendizaje',
-      icon: <MapIcon className="w-5 h-5" />,
-    },
-    {
-      href: '/perfil',
-      label: 'Mi perfil',
-      icon: <User className="w-5 h-5" />,
-    },
-  ]
+      title: 'Cuenta',
+      items: [
+        {
+          href: '/perfil',
+          label: 'Mi Perfil',
+          icon: <User className="w-5 h-5" />,
+        },
+      ]
+    }
+  ];
 
-  const teacherItems = [
-    {
-      href: '/subir',
-      label: 'Subir contenido',
-      icon: <Upload className="w-5 h-5" />,
-    },
-  ]
+  if (role === 'teacher' || role === 'admin') {
+    sections.splice(1, 0, {
+      title: 'Instructor',
+      items: [
+        {
+          href: '/subir',
+          label: 'Subir Clase',
+          icon: <Upload className="w-5 h-5" />,
+        },
+        {
+          href: '/mis-contenidos',
+          label: 'Mis Contenidos',
+          icon: <FileText className="w-5 h-5" />,
+        },
+        {
+          href: '/metricas',
+          label: 'Métricas',
+          icon: <BarChart3 className="w-5 h-5" />,
+        },
+      ]
+    });
+  }
 
-  const adminItems = [
-    {
-      href: '/admin',
-      label: 'Panel admin',
-      icon: <Shield className="w-5 h-5" />,
-    },
-    ...teacherItems,
-  ]
+  if (role === 'admin') {
+    sections.push({
+      title: 'Sistema',
+      items: [
+        {
+          href: '/admin',
+          label: 'Panel Admin',
+          icon: <Shield className="w-5 h-5" />,
+        },
+      ]
+    });
+  }
 
-  if (role === 'admin') return [...base, ...adminItems]
-  if (role === 'teacher') return [...base, ...teacherItems]
-  return base
+  return sections;
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { user, token, logout } = useAuthStore()
+  const { user, token, logout, viewMode } = useAuthStore()
 
   const [mounted, setMounted] = useState(false)
 
@@ -84,17 +123,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push('/login')
   }
 
-  // Mientras no está hidratado, no renderiza nada (evita el flash y el redirect falso)
   if (!mounted) return null
 
-  const navItems = getNavItems(user?.role || 'student')
+  const sections = getNavSections(user?.role || 'student')
 
   return (
     <div className="min-h-screen bg-[#f5f7fb] dark:bg-slate-950 flex flex-col md:flex-row">
-      {/* 
-        Sidebar (Dark mode style as requested) 
-        - bg-indigo-950 for a premium dark blue/indigo feel over plain black/gray900
-      */}
       <aside className="w-full md:w-64 bg-slate-900 dark:bg-slate-900 border-r border-slate-800 flex flex-col fixed h-full z-20">
         <div className="p-6">
           <div className="flex items-center gap-3">
@@ -108,26 +142,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-          <p className="px-3 text-xs font-bold text-slate-500/80 uppercase tracking-widest mb-4 mt-2">Menu Principal</p>
-          {navItems.map((item) => {
-            const active = pathname === item.href
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${active
-                    ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 shadow-sm'
-                    : 'text-gray-400 hover:bg-gray-800 dark:hover:bg-slate-800 hover:text-gray-100'
-                  }`}
-              >
-                <div className={active ? 'text-indigo-400' : 'text-slate-500 group-hover:text-slate-300'}>
-                  {item.icon}
-                </div>
-                {item.label}
-              </Link>
-            )
-          })}
+        <nav className="flex-1 p-4 space-y-8 overflow-y-auto custom-scrollbar">
+          {sections.map((section) => (
+            <div key={section.title} className="space-y-2">
+              <p className="px-3 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                {section.title}
+              </p>
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const active = pathname === item.href
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 group ${
+                        active
+                          ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                          : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+                      }`}
+                    >
+                      <div className={`transition-colors ${active ? 'text-white' : 'text-slate-500 group-hover:text-indigo-400'}`}>
+                        {item.icon}
+                      </div>
+                      {item.label}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="p-4 border-t border-slate-800 bg-slate-900 dark:bg-slate-900">

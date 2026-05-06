@@ -14,6 +14,8 @@ export interface IMultimediaContent extends Document {
   difficulty_level?: 'basico' | 'intermedio' | 'avanzado'
   is_introductory: boolean
   average_rating: number
+  visibility: 'public' | 'private'
+  allowed_students: number[]
   created_at: Date
 }
 
@@ -21,7 +23,6 @@ const schema = new Schema<IMultimediaContent>({
   title: { type: String, required: true },
   description: { type: String },
   body_content: { type: String },
-  // <-- ¡Campo añadido con validación estricta!
   content_type: { 
     type: String, 
     required: true,
@@ -36,6 +37,8 @@ const schema = new Schema<IMultimediaContent>({
   difficulty_level: { type: String, enum: ['basico', 'intermedio', 'avanzado'] },
   is_introductory: { type: Boolean, default: false },
   average_rating: { type: Number, default: 0 },
+  visibility: { type: String, enum: ['public', 'private'], default: 'public' },
+  allowed_students: [{ type: Number }],
   created_at: { type: Date, default: Date.now },
 })
 

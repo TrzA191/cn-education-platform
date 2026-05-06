@@ -9,8 +9,8 @@ import { createContentSchema } from '../schemas/content.schemas'
 const router = Router()
 const upload = multer({ storage: multer.memoryStorage() })
 
-router.get('/', listContents)
-router.get('/:id', getContent)
+router.get('/', authenticate, listContents)
+router.get('/:id', authenticate, getContent)
 router.post('/', authenticate, authorize('teacher', 'admin'), upload.single('file'), validate(createContentSchema), createContent)
 router.patch('/:id', authenticate, authorize('teacher', 'admin'), updateContent)
 

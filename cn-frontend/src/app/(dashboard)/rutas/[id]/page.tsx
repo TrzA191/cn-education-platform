@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/auth.store'
 import api from '@/lib/api'
@@ -37,6 +37,7 @@ interface FullContent {
   _id: string
   title: string
   description: string
+  body_content?: string
   content_type: string
   duration_seconds: number | null
   cdn_url: string
@@ -148,6 +149,31 @@ function ContentViewer({
     }
   }
 
+  const lastSyncTimeRef = useRef(0)
+
+  const syncProgress = async (seconds: number) => {
+    try {
+      await api.post('/api/progress', { content_id: contentId, watched_seconds: seconds })
+    } catch (err) {
+      console.error('Error guardando progreso:', err)
+    }
+  }
+
+  const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const video = e.currentTarget
+    const currentTime = video.currentTime
+    // Sync every 10 seconds
+    if (Math.abs(currentTime - lastSyncTimeRef.current) >= 10) {
+      lastSyncTimeRef.current = currentTime
+      syncProgress(currentTime)
+    }
+  }
+
+  const handlePause = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const video = e.currentTarget
+    syncProgress(video.currentTime)
+  }
+
   return (
     /* Backdrop */
     <div
@@ -215,7 +241,14 @@ function ContentViewer({
                       allowFullScreen
                     />
                   ) : (
-                    <video controls autoPlay className="w-full h-full object-cover" src={content.cdn_url}>
+                    <video 
+                      controls 
+                      autoPlay 
+                      className="w-full h-full object-cover" 
+                      src={content.cdn_url}
+                      onTimeUpdate={handleTimeUpdate}
+                      onPause={handlePause}
+                    >
                       Tu navegador no soporta video HTML5.
                     </video>
                   )}
@@ -613,7 +646,7 @@ export default function RutaDetallePage({ params }: { params: { id: string } }) 
                                         </span>
                                       </>
                                     )}
-                                    {item.content_id.average_rating > 0 && (
+                                    {(item.content_id.average_rating ?? 0) > 0 && (
                                       <>
                                         <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
                                         <span className="flex items-center gap-1 text-amber-500">

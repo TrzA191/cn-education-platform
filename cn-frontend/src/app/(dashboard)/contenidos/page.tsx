@@ -15,7 +15,8 @@ import {
   ChevronRight,
   PlayCircle,
   Loader2,
-  X
+  X,
+  Plus
 } from 'lucide-react'
 
 interface Content {
@@ -64,7 +65,6 @@ export default function ContenidosPage() {
 
 
   const fetchContents = async (searchTerm?: string) => {
-    setLoading(true)
     const finalSearch = searchTerm !== undefined ? searchTerm : search
     console.log(`[Catalog] Buscando: "${finalSearch}", Dificultad: "${difficultyFilter}"`);
     
@@ -116,10 +116,9 @@ export default function ContenidosPage() {
             <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Buscar por título... (Presiona Enter o clica en Buscar)"
+              placeholder="Buscar contenido, tags, descripcion..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit()}
               className="w-full pl-12 pr-28 py-4 rounded-3xl bg-slate-50 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-800/80 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none text-slate-900 dark:text-white font-medium placeholder-slate-400 dark:placeholder-slate-500"
             />
             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -275,13 +274,31 @@ export default function ContenidosPage() {
                   </div>
 
                   
-                  <Link 
-                    href={`/contenidos/${content._id}`}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-indigo-600 dark:hover:bg-indigo-500 text-slate-700 dark:text-slate-300 hover:text-white font-bold text-xs rounded-xl transition-all group/btn"
-                  >
-                    Ver Ahora
-                    <ChevronRight className="w-3 h-3 transform group-hover/btn:translate-x-1 transition-transform" />
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={async (e) => {
+                        e.preventDefault()
+                        try {
+                          await api.post('/api/progress', { content_id: content._id, watched_seconds: 0 })
+                          // Se podría mostrar un toast, pero el usuario no pidió más detalles, solo que se agregue
+                          alert('Agregado a Mis Cursos exitosamente')
+                        } catch (err) {
+                          console.error(err)
+                        }
+                      }}
+                      className="p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl transition-all"
+                      title="Agregar a Mis Cursos"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                    <Link 
+                      href={`/contenidos/${content._id}`}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-indigo-600 dark:hover:bg-indigo-500 text-slate-700 dark:text-slate-300 hover:text-white font-bold text-xs rounded-xl transition-all group/btn"
+                    >
+                      Ver Ahora
+                      <ChevronRight className="w-3 h-3 transform group-hover/btn:translate-x-1 transition-transform" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>

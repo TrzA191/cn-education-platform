@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/auth.store'
 import api from '@/lib/api'
 import Link from 'next/link'
-import { 
-  PlayCircle, 
-  CheckCircle2, 
-  Clock, 
+import {
+  PlayCircle,
+  CheckCircle2,
+  Clock,
   TrendingUp,
   FileText,
   Video,
@@ -132,7 +132,7 @@ export default function DashboardPage() {
               <p className="text-amber-800 dark:text-amber-300/80 font-medium mt-1">
                 Nuestro equipo administrativo está validando tu perfil. Mientras tanto, puedes explorar la plataforma como <b>estudiante</b>. Te avisaremos por correo una vez seas aprobado.
               </p>
-              <button 
+              <button
                 onClick={checkStatus}
                 disabled={refreshing}
                 className="mt-4 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-amber-600/20 flex items-center gap-2"
@@ -179,12 +179,12 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column (Courses & Content) - Spans 2 columns */}
         <div className="lg:col-span-2 space-y-8">
-          
+
           {/* Current Courses / Content Section */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-slate-800 dark:text-white">Recent Materials</h2>
-              <Link href="/dashboard/contenidos" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+              <Link href="/contenidos/" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
                 View All <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
@@ -227,7 +227,7 @@ export default function DashboardPage() {
 
           {/* Tags / Topics Section */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-6 shadow-sm">
-             <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-slate-800 dark:text-white">Explore Topics</h2>
             </div>
             {loading ? (
@@ -252,7 +252,7 @@ export default function DashboardPage() {
 
         {/* Right Column (Timeline / Paths) - Spans 1 column */}
         <div className="lg:col-span-1 space-y-8">
-          
+
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-6 shadow-sm h-full">
             <div className="flex items-center gap-2 mb-6">
               <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
@@ -275,7 +275,7 @@ export default function DashboardPage() {
                   <div key={p._id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                     {/* Timeline Node */}
                     <div className="flex items-center justify-center w-6 h-6 rounded-full border-4 border-white dark:border-slate-900 bg-indigo-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10"></div>
-                    
+
                     {/* Card */}
                     <Link href={`/rutas/${p._id}`} className="w-[calc(100%-2.5rem)] md:w-[calc(50%-1.5rem)] p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-all cursor-pointer block">
                       <div className="mb-2">
@@ -287,7 +287,7 @@ export default function DashboardPage() {
                       <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
                         {p.is_system_generated ? 'AI Generated' : 'Teacher Created'}
                       </p>
-                      
+
                       {/* Fake Progress Bar for UI Aesthetics */}
                       <div className="mt-4">
                         <div className="flex justify-between text-xs mb-1">

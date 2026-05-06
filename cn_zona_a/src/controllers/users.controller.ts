@@ -299,13 +299,54 @@ export async function getProfile(req: Request, res: Response) {
   const result = await pool.request()
     .input("id", id)
     .query(`
-SELECT *
-FROM user_profiles
-WHERE user_id=@id
+SELECT p.*, u.username as name, u.email, u.role
+FROM users u
+LEFT JOIN user_profiles p ON p.user_id = u.id
+WHERE u.id=@id
 `);
 
   res.json(result.recordset[0]);
 
+}
+
+export async function getBulkProfiles(req: Request, res: Response) {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  // Create a parameterized query for the IN clause
+  const placeholders = ids.map((_, i) => `@id${i}`).join(',');
+  const request = pool.request();
+  ids.forEach((id, i) => request.input(`id${i}`, id));
+
+  const result = await request.query(`
+    SELECT u.id as user_id, u.username as name, u.email, u.role, p.bio, p.country, p.avatar_url
+    FROM users u
+    LEFT JOIN user_profiles p ON p.user_id = u.id
+    WHERE u.id IN (${placeholders})
+  `);
+
+  res.json(result.recordset);
+}
+
+export async function getIdsByEmails(req: Request, res: Response) {
+  const { emails } = req.body;
+  if (!Array.isArray(emails) || emails.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  const placeholders = emails.map((_, i) => `@email${i}`).join(',');
+  const request = pool.request();
+  emails.forEach((email, i) => request.input(`email${i}`, email.trim().toLowerCase()));
+
+  const result = await request.query(`
+    SELECT id, email FROM users WHERE email IN (${placeholders})
+  `);
+
+  res.json(result.recordset);
 }
 
 export async function updateProfile(req: Request, res: Response) {

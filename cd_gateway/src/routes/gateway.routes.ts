@@ -30,6 +30,8 @@ router.post('/users/:id/toggle-block', authenticate, authorize('admin'), proxy(Z
 router.post('/users/:id/approve-teacher', authenticate, authorize('admin'), proxy(ZONA_A))
 
 
+router.post('/users/bulk-profiles', authenticate, proxy(ZONA_A))
+router.post('/users/by-emails', authenticate, proxy(ZONA_A))
 router.get('/users/:id/profile', authenticate, proxy(ZONA_A))
 router.patch('/users/:id/profile', authenticate, proxy(ZONA_A))
 
@@ -67,6 +69,8 @@ router.post('/progress', authenticate, proxy(ZONA_B))
 router.get('/progress/:userId', authenticate, proxy(ZONA_B))
 
 // Evaluaciones
+router.get('/assessments/teacher-results', authenticate, proxy(ZONA_B))
+router.get('/assessments/content/:contentId', authenticate, proxy(ZONA_B))
 router.post('/assessments', authenticate, proxy(ZONA_B))
 router.post('/assessments/:id/results', authenticate, proxy(ZONA_B))
 
@@ -77,6 +81,11 @@ router.get('/comments/:contentId', proxy(ZONA_B))
 // Calificaciones
 router.post('/ratings', authenticate, proxy(ZONA_B))
 router.get('/ratings/:contentId', proxy(ZONA_B))
+
+// Notificaciones
+router.get('/notifications', authenticate, proxy(ZONA_B))
+router.patch('/notifications/:id/read', authenticate, proxy(ZONA_B))
+router.post('/notifications/read-all', authenticate, proxy(ZONA_B))
 
 router.get('/users/security-logs', authenticate, authorize('admin'), proxy(ZONA_A))
 router.get('/users/failed-attempts', authenticate, authorize('admin'), proxy(ZONA_A))

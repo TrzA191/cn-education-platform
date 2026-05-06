@@ -41,9 +41,10 @@ export default function SubirContenidoPage() {
     description     : '',
     body_content    : '',
     content_type    : 'video',
-    duration_seconds: '',
     difficulty_level: 'basico',
     is_introductory : false,
+    visibility      : 'public',
+    allowed_emails  : '',
     tags            : [] as string[]
   })
 
@@ -146,11 +147,10 @@ export default function SubirContenidoPage() {
       formData.append('description', form.description)
       formData.append('body_content', form.body_content)
       formData.append('content_type', form.content_type)
-      if (form.duration_seconds) {
-        formData.append('duration_seconds', form.duration_seconds)
-      }
       formData.append('difficulty_level', form.difficulty_level)
       formData.append('is_introductory', String(form.is_introductory))
+      formData.append('visibility', form.visibility)
+      formData.append('allowed_emails', form.allowed_emails)
 
       // Capturar si dejó texto en el input sin dar enter
       let finalTags = [...form.tags];
@@ -246,7 +246,7 @@ export default function SubirContenidoPage() {
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Título de la Clase</label>
                 <input
-                  type="text" required
+                  type="text" required minLength={3}
                   value={form.title}
                   onChange={e => setForm({ ...form, title: e.target.value })}
                   className="w-full px-5 py-4 h-[58px] rounded-[20px] border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder-slate-400"
@@ -257,7 +257,7 @@ export default function SubirContenidoPage() {
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Resumen Corto</label>
                 <input
-                  type="text" required
+                  type="text" required minLength={3}
                   value={form.description}
                   onChange={e => setForm({ ...form, description: e.target.value })}
                   className="w-full px-5 py-4 h-[58px] rounded-[20px] border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder-slate-400"
@@ -266,7 +266,7 @@ export default function SubirContenidoPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Dificultad</label>
                 <div className="relative group">
@@ -299,16 +299,37 @@ export default function SubirContenidoPage() {
                 </button>
               </div>
 
+
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-50 dark:border-slate-800">
               <div className="space-y-2">
-                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Duración (Minutos)</label>
-                <input
-                  type="number"
-                  value={form.duration_seconds}
-                  onChange={e => setForm({ ...form, duration_seconds: e.target.value })}
-                  className="w-full px-5 py-4 h-[58px] rounded-[20px] border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                  placeholder="Ej. 15"
-                />
+                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Visibilidad</label>
+                <div className="relative group">
+                  <select
+                    value={form.visibility}
+                    onChange={e => setForm({ ...form, visibility: e.target.value })}
+                    className="w-full px-5 py-4 h-[58px] rounded-[20px] border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="public">🌍 Público (Catálogo General)</option>
+                    <option value="private">🔒 Privado (Solo invitados)</option>
+                  </select>
+                  <ChevronDown className="w-5 h-5 text-slate-400 absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-indigo-500 transition-colors" />
+                </div>
               </div>
+
+              {form.visibility === 'private' && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Invitar Alumnos (Correos)</label>
+                  <input
+                    type="text"
+                    value={form.allowed_emails}
+                    onChange={e => setForm({ ...form, allowed_emails: e.target.value })}
+                    className="w-full px-5 py-4 h-[58px] rounded-[20px] border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder-slate-400"
+                    placeholder="Ej. alumno@gmail.com, otro@pathly.com"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-4 pt-2">
