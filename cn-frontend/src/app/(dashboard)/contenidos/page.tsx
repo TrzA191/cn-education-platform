@@ -3,154 +3,323 @@
 import { useEffect, useState } from 'react'
 import api from '@/lib/api'
 import Link from 'next/link'
+import { 
+  Search, 
+  Filter, 
+  Video, 
+  FileText, 
+  Type, 
+  BookOpen, 
+  Clock, 
+  Star,
+  ChevronRight,
+  PlayCircle,
+  Loader2,
+  X,
+  Plus
+} from 'lucide-react'
 
-// Definimos la estructura de datos que viene de tus microservicios (Zona A/B)
 interface Content {
-  _id: string | number
+  _id: string
   title: string
-  description: string
+  description?: string
   content_type: 'video' | 'pdf' | 'texto'
-  duration_seconds: number | null
-  status: 'activo' | 'inactivo'
-  cdn_url: string
+  difficulty_level?: 'basico' | 'intermedio' | 'avanzado'
+  duration_seconds?: number
+  average_rating?: number
+  created_at: string
 }
 
-// Helper para iconos descriptivos
-function contentTypeIcon(type: string) {
+
+function difficultyColor(level: string) {
+  const map: Record<string, string> = {
+    basico: 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20',
+    intermedio: 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20',
+    avanzado: 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20',
+  }
+  return map[level] || 'bg-slate-50 text-slate-600 border-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+}
+
+function ContentIcon({ type, className }: { type: string, className?: string }) {
   switch (type) {
-    case 'video': return '🎬'
-    case 'pdf': return '📄'
-    case 'texto': return '📝'
-    default: return '📁'
+    case 'video': return <Video className={className} />
+    case 'pdf': return <FileText className={className} />
+    case 'texto': return <Type className={className} />
+    default: return <BookOpen className={className} />
   }
 }
 
-// Helper para formatear tiempo (útil para la tesis)
-function formatDuration(seconds: number) {
+function formatDuration(seconds?: number) {
+  if (!seconds) return null
   const m = Math.floor(seconds / 60)
+  if (m < 60) return `${m} min`
   const h = Math.floor(m / 60)
-  if (h > 0) return `${h}h ${m % 60}min`
-  return `${m} min`
+  return `${h}h ${m % 60}m`
 }
 
 export default function ContenidosPage() {
   const [contents, setContents] = useState<Content[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('todos')
+  const [difficultyFilter, setDifficultyFilter] = useState<string>('')
+
+
+  const fetchContents = async (searchTerm?: string) => {
+    const finalSearch = searchTerm !== undefined ? searchTerm : search
+    console.log(`[Catalog] Buscando: "${finalSearch}", Dificultad: "${difficultyFilter}"`);
+    
+    try {
+      const params = new URLSearchParams()
+      if (finalSearch) params.append('title', finalSearch)
+      if (difficultyFilter) params.append('difficulty_level', difficultyFilter)
+
+      const res = await api.get(`/api/contents?${params.toString()}`)
+      setContents(res.data?.data || res.data || [])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
 
   useEffect(() => {
-    // Llamada al Gateway o Microservicio
-    api.get('/api/contents')
-      .then(res => {
-        // Manejamos diferentes estructuras de respuesta comunes en Express/Nest
-        const data = res.data?.data || res.data || []
-        setContents(data)
-      })
-      .catch(err => {
-        console.error("Error conectando con el microservicio:", err)
-      })
-      .finally(() => setLoading(false))
-  }, [])
+    fetchContents()
+  }, [difficultyFilter])
 
-  // Lógica de filtrado en el cliente
-  const filtered = contents.filter(c => {
-    const matchSearch = c.title.toLowerCase().includes(search.toLowerCase())
-    const matchFilter = filter === 'todos' || c.content_type === filter
-    return matchSearch && matchFilter
-  })
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    fetchContents()
+  }
+
+
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Encabezado */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Contenidos</h1>
-        <p className="text-gray-500 mt-2 text-lg">Explora las rutas de aprendizaje y recursos disponibles.</p>
+    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+      
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">Catálogo de Contenidos</h1>
+          <p className="text-slate-600 dark:text-slate-300 font-medium text-lg">Explora nuestra biblioteca de recursos multimedia y potencia tu aprendizaje.</p>
+        </div>
+        <div className="flex items-center gap-2 text-sm font-bold text-slate-400 dark:text-slate-500 bg-slate-100/50 dark:bg-slate-800/50 px-4 py-2 rounded-2xl border border-slate-100 dark:border-slate-800">
+          <BookOpen className="w-4 h-4" />
+          <span>{contents.length} Recursos disponibles</span>
+        </div>
       </div>
 
-      {/* Barra de Herramientas (Buscador + Filtros) */}
-      <div className="flex flex-col md:flex-row gap-4 mb-8">
-        <input
-          type="text"
-          placeholder="¿Qué quieres aprender hoy?..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="flex-1 px-5 py-3 rounded-2xl border border-gray-200 bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-        />
+      {/* Filters Bar */}
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col lg:flex-row gap-4 items-center">
         
-        <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
-          {['todos', 'video', 'pdf', 'texto'].map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-5 py-2.5 rounded-xl text-sm font-semibold capitalize whitespace-nowrap transition-all ${
-                filter === f
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
+          <form onSubmit={handleSearchSubmit} className="relative flex-1 w-full">
+            <Search className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Buscar contenido, tags, descripcion..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-12 pr-28 py-4 rounded-3xl bg-slate-50 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-800/80 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none text-slate-900 dark:text-white font-medium placeholder-slate-400 dark:placeholder-slate-500"
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {search && (
+                <button 
+                  type="button"
+                  onClick={() => { 
+                    setSearch(''); 
+                    fetchContents(''); 
+                  }}
+                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-400 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+
+              <button 
+                type="submit"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-indigo-500/20"
+              >
+                Buscar
+              </button>
+            </div>
+          </form>
+
+
+        {/* Filter Group */}
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-800">
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 px-2 uppercase tracking-widest">Nivel</span>
+            {[
+              { id: '', label: 'Todos' },
+              { id: 'basico', label: 'Básico' },
+              { id: 'intermedio', label: 'Inter' },
+              { id: 'avanzado', label: 'Pro' },
+            ].map((d) => (
+              <button
+                key={d.id}
+                onClick={() => setDifficultyFilter(d.id)}
+                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                  difficultyFilter === d.id 
+                    ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
+
         </div>
       </div>
 
-      {/* Estado de Carga (Skeletons) */}
+      {/* Grid Section */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="h-64 bg-gray-50 rounded-3xl border border-gray-100 animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {[1,2,3,4,5,6].map(i => (
+            <div key={i} className="h-[420px] bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 animate-pulse overflow-hidden">
+               <div className="h-48 bg-slate-50 dark:bg-slate-800/40" />
+               <div className="p-8 space-y-4">
+                 <div className="h-6 w-3/4 bg-slate-100 dark:bg-slate-800/60 rounded-lg" />
+                 <div className="h-20 w-full bg-slate-100 dark:bg-slate-800/60 rounded-lg" />
+                 <div className="flex gap-2">
+                    <div className="h-8 w-20 bg-slate-100 dark:bg-slate-800/60 rounded-lg" />
+                    <div className="h-8 w-20 bg-slate-100 dark:bg-slate-800/60 rounded-lg" />
+                 </div>
+               </div>
+            </div>
           ))}
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-24 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
-          <span className="text-4xl mb-4 block">🔍</span>
-          <p className="text-gray-500 font-medium">No encontramos resultados para tu búsqueda</p>
+
+      ) : contents.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-32 bg-white dark:bg-slate-900 rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800">
+          <div className="w-24 h-24 bg-slate-50 dark:bg-slate-800 text-slate-200 dark:text-slate-700 rounded-full flex items-center justify-center mb-6">
+            <Search className="w-10 h-10 text-slate-200" />
+          </div>
+          <h3 className="text-2xl font-bold text-slate-800 dark:text-white">No encontramos resultados</h3>
+          <p className="text-slate-600 dark:text-slate-300 font-medium mt-2 mb-8">Intenta ajustar los filtros o buscar con otros términos.</p>
+          <button 
+            onClick={() => { setSearch(''); setDifficultyFilter('') }}
+
+            className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/20"
+          >
+            Limpiar filtros
+          </button>
         </div>
       ) : (
-        /* Grid de Resultados */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map(c => (
-            <Link key={c._id} href={`/dashboard/contenidos/${c._id}`} className="group bg-white rounded-3xl border border-gray-100 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {contents.map((content) => (
+            <div 
+              key={content._id}
+              className="group relative bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 hover:border-indigo-100 dark:hover:border-indigo-500/30 transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(79,70,229,0.1)] dark:hover:shadow-none overflow-hidden flex flex-col"
             >
-              <div className="flex items-start justify-between mb-5">
-                <div className="p-3 bg-indigo-50 rounded-2xl text-3xl">
-                  {contentTypeIcon(c.content_type)}
+              {/* Card Image Placeholder / Pattern */}
+              <div className={`h-48 relative overflow-hidden flex items-center justify-center ${
+                content.content_type === 'video' ? 'bg-slate-900' : 
+                content.content_type === 'pdf' ? 'bg-rose-50 dark:bg-rose-500/10' : 'bg-indigo-50 dark:bg-indigo-500/10'
+              }`}>
+                {/* Decorative background */}
+                <div className="absolute inset-0 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-white rounded-full blur-3xl" />
+                  <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-400 rounded-full blur-3xl" />
                 </div>
-                <span className={`text-[10px] uppercase tracking-widest px-3 py-1 rounded-full font-bold ${
-                  c.status === 'activo' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'
+
+                <div className={`p-6 rounded-3xl shadow-2xl transform group-hover:scale-110 transition-transform duration-500 ${
+                  content.content_type === 'video' ? 'bg-white/10 text-white backdrop-blur-md' : 
+                  content.content_type === 'pdf' ? 'bg-rose-500 text-white' : 'bg-indigo-600 text-white'
                 }`}>
-                  {c.status}
-                </span>
-              </div>
+                  <ContentIcon type={content.content_type} className="w-10 h-10" />
+                </div>
 
-              <h3 className="font-bold text-gray-900 text-xl mb-2 line-clamp-1 group-hover:text-indigo-600 transition-colors">
-                {c.title}
-              </h3>
-              
-              <p className="text-sm text-gray-500 line-clamp-2 mb-6 leading-relaxed">
-                {c.description}
-              </p>
-
-              <div className="pt-5 border-t border-gray-50 flex items-center justify-between">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-tight">
-                  {c.content_type}
-                  {c.duration_seconds ? ` • ${formatDuration(c.duration_seconds)}` : ''}
-                </span>
-                
-                {c.cdn_url && (
-                  <a 
-                    href={c.cdn_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-sm text-indigo-600 font-bold hover:text-indigo-800 transition-colors"
-                  >
-                    Abrir <span>→</span>
-                  </a>
+                {content.content_type === 'video' && (
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-[2px]">
+                    <PlayCircle className="w-16 h-16 text-white" />
+                  </div>
                 )}
               </div>
-            </Link>
+
+              {/* Card Content */}
+              <div className="p-8 flex-1 flex flex-col">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${difficultyColor(content.difficulty_level || '')}`}>
+                    {content.difficulty_level || 'General'}
+                  </span>
+                  <span className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                    <ContentIcon type={content.content_type} className="w-3 h-3" />
+                    {content.content_type}
+                  </span>
+                </div>
+
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2 leading-tight">
+                  {content.title}
+                </h3>
+                
+                <p className="text-slate-600 dark:text-slate-300 text-sm font-medium line-clamp-3 mb-6 leading-relaxed">
+                  {content.description || 'Sin descripción disponible para este recurso educativo.'}
+                </p>
+
+                <div className="mt-auto pt-6 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center gap-4 text-slate-400 dark:text-slate-500">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wider">
+                        {formatDuration(content.duration_seconds) || '0 min'}
+                      </span>
+                    </div>
+                    {(content.average_rating ?? 0) > 0 && (
+                      <div className="flex items-center gap-1 text-amber-500">
+                        <Star className="w-4 h-4 fill-current" />
+                        <span className="text-xs font-bold uppercase tracking-wider">{content.average_rating}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={async (e) => {
+                        e.preventDefault()
+                        try {
+                          await api.post('/api/progress', { content_id: content._id, watched_seconds: 0 })
+                          // Se podría mostrar un toast, pero el usuario no pidió más detalles, solo que se agregue
+                          alert('Agregado a Mis Cursos exitosamente')
+                        } catch (err) {
+                          console.error(err)
+                        }
+                      }}
+                      className="p-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold rounded-xl transition-all"
+                      title="Agregar a Mis Cursos"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                    <Link 
+                      href={`/contenidos/${content._id}`}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-slate-50 dark:bg-slate-800 hover:bg-indigo-600 dark:hover:bg-indigo-500 text-slate-700 dark:text-slate-300 hover:text-white font-bold text-xs rounded-xl transition-all group/btn"
+                    >
+                      Ver Ahora
+                      <ChevronRight className="w-3 h-3 transform group-hover/btn:translate-x-1 transition-transform" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
           ))}
+        </div>
+      )}
+
+      {/* Bottom CTA or Info */}
+      {!loading && contents.length > 0 && (
+        <div className="mt-12 p-8 bg-gradient-to-r from-slate-900 to-indigo-950 rounded-[3rem] text-white flex flex-col md:flex-row items-center justify-between gap-8 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
+          <div className="z-10">
+            <h4 className="text-2xl font-bold mb-2">¿No encuentras lo que buscas?</h4>
+            <p className="text-indigo-200/80 font-medium">Nuestro equipo sube contenido nuevo todas las semanas. ¡Mantente atento!</p>
+          </div>
+          <Link 
+            href="/perfil"
+            className="z-10 px-8 py-4 bg-white text-indigo-900 font-bold rounded-2xl hover:bg-indigo-50 transition-all shadow-xl shadow-black/20"
+          >
+            Configurar mis intereses
+          </Link>
         </div>
       )}
     </div>

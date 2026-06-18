@@ -1,0 +1,154 @@
+# CHANGELOG - Proyecto CN Education
+
+Registro cronológico e histórico de modificaciones en el monorepo.
+
+## [2026-04-14] Implementación Auth con OTP (Nodemailer)
+**Carpeta: `cn_zona_a` (Backend API)**
+- **Migraciones:** Creada tabla temporal `verification_codes` para expirar códigos.
+- **Servicios:** Creación del servicio `src/lib/email.ts` integrando `nodemailer` usando SMTP (Gmail).
+- **Rutas y Controladores:** Creado endpoint `/send-verification-code`. Modificado `/register` validando el código temporal contra SQL Server.
+
+**Carpeta: `cd_gateway` (Gateway API)**
+- Autorizada nueva ruta pública `POST /auth/send-verification-code` en el enrutamiento y proxy.
+
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- Modificado el formulario de Login/Registro (`login/page.tsx`) a dos pasos, integrando los estados y componentes controlados requeridos para el código de seguridad.
+
+## [2026-04-15] Migración a Google reCAPTCHA y Bloqueo Escalonado
+**Carpeta: `cn_zona_a` (Backend API)**
+- **Verificación reCAPTCHA:** Eliminada la lógica simulada. Ahora se llama al API de Google `siteverify` mediante un `fetch` hacia el backend de Google para validar los tokens de reCAPTCHA recibidos.
+- **Escalating Lockout:** Actualizada la lógica dinámica de bloqueos en `auth.controller.ts` para aplicar tiempos escalonados fijos (10, 15, 30 y 60 minutos) basándose en la persistencia del campo absoluto `failed_attempts` del usuario.
+- **Timezone Fix SQL:** Refactorización en `security.service.ts` para que todas las inserciones del castigo utilicen `DATEADD(MINUTE)` dictado estrictamente por `GETUTCDATE()` dentro de SQL Server, anulando así discrepancias por la zona horaria del servidor (que anulaba los bloqueos).
+
+**Carpeta: `cn-frontend` (Frontend Next.js)** 
+- **Integración del Token:** Modificado `login/page.tsx` para almacenar y utilizar de forma controlada el String del token (`captchaToken`) expedido por el componente `<CaptchaGate />`, adjuntándose dentro de los headers de inicio de sesión (`x-recaptcha-token`).
+- **Rediseño UI (Dashboard SaaS):** Reestructuración total de `layout.tsx` y `dashboard/page.tsx`. Transición a modo oscuro para el Sidebar, barra superior (Top Bar) con notificaciones, migración de SVGs planos a `lucide-react`, y rediseño de las vistas usando *Grid* para mostrar tarjetas estilizadas con Tailwind CSS puro.
+- **Rollout de UI (Fixes & Login):** Restaurados los enlaces `<Link>` perdidos y expansión de los estilos base de alta fidelidad hacia los controladores externos como `login/page.tsx`.
+
+## [2026-04-27] Control de Sesión Dinámico y Auto-Logout Automático
+**Carpeta: `cn_zona_a` (Backend API)**
+- **Expiración Dinámica:** Se vinculó el tiempo de vida del Token JWT y de la sesión en Base de Datos a la variable de entorno `JWT_EXPIRES`.
+- **Parser de Tiempo:** Implementada lógica para procesar formatos como `1h`, `7d`, `1m` o `30s` directamente desde el `.env`, sincronizando la expiración física en SQL Server con la lógica del token.
+
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- **SessionGuard Component:** Nuevo componente "guardián" de alto nivel (`components/SessionGuard.tsx`) que monitorea la validez del JWT en segundo plano.
+- **Auto-Logout Pasivo:** Si el token expira mientras el usuario está en la plataforma (incluso sin interactuar), el guardián detecta la expiración, limpia el almacenamiento local (`auth-storage`) y redirige automáticamente a `/login`.
+- **Intercepción de Red:** Refuerzo en `api.ts` para capturar errores 401 (Unauthorized) y forzar el cierre de sesión ante cualquier intento fallido por token caducado.
+
+## [2026-04-16] Algoritmo de Recomendación y Rutas Automáticas
+**Carpeta: `cn_zona_b` (Backend API Content)**
+- **Modelos:** Agregado modelo interactivo `UserInterest` para el enrutamiento de perfil, se modificaron los campos de base de datos de contenido (`tags`, `difficulty_level`).
+- **Endpoint Inteligente:** Se implementó `paths.controller.ts` > `generateSystemPath`, generando rutas (`is_system_generated: true`) ordenadas explícitamente desde la dificultad más elemental hacia la más avanzada y empacadas en auto-enroll.
+
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- **Perfil de Usuario:** Extensibilidad en `/perfil` integrando pills en el catálogo de las etiquetas generadas en Mongo y el binding para asignación de nuevos intereses por usuario.
+- **Formulario de Carga:** Nueva selector de dificultad y categorización con Array de etiquetas conectadas de forma Reactiva desde la API (`/subir`).
+- **Discovery Engine:** Refactorización visual en `/rutas`, la arquitectura del menú fue mejorada hacia una landing page donde se aloja el trigger manual de auto-sugerencias (`handleGenerate`) y renderizado "Premium" en tarjetas generadas por el sistema.
+
+## [2026-04-17] Rediseño UI/UX de Rutas de Aprendizaje
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- **Perfil de Usuario:** Se eliminó la configuración de "Mis Intereses", delegando este paso hacia la experiencia de creación misma para un flujo más natural.
+- **Rutas Pincipales (`/rutas`):** Modernización del botón principal eliminando alusiones y estética "IA". Se integró un modal de configuración que aparece antes de la creación que fuerza al usuario a escoger tags para mejorar sus recomendaciones.
+- **Dashboard de Ruta Individual (`/rutas/[id]`):** Rediseño total usando layout de dos columnas, reemplazando la lista básica de recursos por un Timeline Vertical con el progreso por módulo y un panel estático con métricas (tiempo y avance).
+
+## [2026-04-20] Gestión Administrativa, Estabilidad y Ciclo de Vida de Rutas
+**Carpeta: `cn_zona_a` (Backend API)**
+- **CRUD Administrativo:** Implementados métodos `createUser`, `updateUser` y `deleteUser` en `users.controller.ts` para permitir la administración manual de cuentas.
+- **Auditoría:** Integrado `logSecurityEvent` en las acciones administrativas para trazabilidad.
+
+**Carpeta: `cn_zona_b` (Backend API Content)**
+- **Protección de Identidad:** Corregida fuga de datos en Rutas de Aprendizaje añadiendo filtros obligatorios por `creator_id`.
+- **Estabilidad de API:** Solucionado error 500 en `/api/progress/enrollments` unificando la identidad del usuario en el token JWT.
+- **Ciclo de Vida de Rutas:** Implementado sistema de "Borrado Seguro" (Archivo). Las rutas pasan a estado `archived` antes de ser eliminadas permanentemente.
+- **Personalización Dinámica:** Modificado el generador de rutas para asignar títulos y descripciones basadas en los temas reales seleccionados.
+- **Gestión de Módulos:** Nuevos endpoints `addPathContent` y `removePathContent` para permitir la edición granular de los contenidos dentro de una ruta.
+
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- **Rutas de Aprendizaje:** 
+    - **Solución de Crash:** Corregido error de renderizado crítico en el detalle de rutas.
+    - **Gestión de Tarjetas:** Añadidos controles para Editar, Archivar, Restaurar y Eliminar permanentemente.
+    - **Confirmación SaaS:** Implementado `ConfirmModal` personalizado para acciones destructivas, reemplazando los diálogos nativos del navegador.
+    - **Editor de Rutas Extendido:** Nuevo modal de edición que permite no solo cambiar metadatos (título/descripción/dificultad) sino también agregar nuevos módulos o quitar existentes.
+    - **Sección Papelera:** Nueva vista de "Archivadas" para gestionar el ciclo de vida de las rutas del usuario.
+- **Panel Admin:** Rediseño modular con navegación inteligente y modales de confirmación con estética SaaS Premium.
+
+## [2026-04-20 — Sesión 2] Corrección de Rutas Gateway, Inscripción y Progreso Real
+
+**Carpeta: `cd_gateway` (Gateway API)**
+- **Bug crítico resuelto:** Las rutas `POST /progress/enroll` y `GET /progress/enrollments` estaban declaradas **después** del wildcard `/:userId`, haciendo que Express las capturara como parámetro y retornara 404. Reordenadas antes del wildcard.
+- **Nueva ruta de progreso:** Registrado `GET /progress/path/:pathId` para obtener el avance real por ruta.
+- **Rutas de paths completas:** Añadidos `PUT /paths/:id`, `DELETE /paths/:id`, `POST /paths/contents`, `DELETE /paths/contents/:id` que faltaban.
+- **Autenticación correcta:** `GET /paths` y `GET /paths/:id` ahora pasan el token JWT correctamente.
+
+**Carpeta: `cn_zona_b` (Backend API Content)**
+- **Mismo bug de orden corregido en `other.routes.ts`:** `/enroll` y `/enrollments` declarados antes de `/:userId`.
+- **Nuevo endpoint `getPathProgress`:** Calcula el porcentaje real cruzando `PathContent` de la ruta con `UserProgress` del usuario. Retorna `{ total, completed, percentage, contentProgress[] }`.
+- **Seguridad en enroll:** `enrollPath` ya no acepta `user_id` del body, lo extrae del token JWT.
+
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- **Botón "Empezar":** Renombrado desde "Inscribirme para empezar". Maneja 409 (ya inscrito) sin mostrar error.
+- **Reproductor inline:** El botón ▶️ de cada módulo abre un panel modal con reproductor embebido (YouTube/video/PDF). Ya no navega a `/contenidos/:id`.
+- **Progreso real:** La barra del sidebar refleja el porcentaje real calculado en backend con "X de N módulos vistos".
+- **Estado visual por módulo:** Nodos del timeline con verde ✅ (completado), indigo 🔵 (actual), gris ⬜ (pendiente).
+- **Registro de actividad:** Al abrir un contenido se llama `POST /progress` automáticamente. Al cerrar el viewer se recarga el progreso.
+- **Botón "Agregar" en editor:** Reemplazado ícono `+` invisible por botón pill `indigo-600` con texto "Agregar".
+
+## [2026-04-21] Habilitación de Catálogo de Contenidos y Filtrador Dinámico
+
+**Carpeta: `cn_zona_b` (Backend API Content)**
+- **Filtrado Inteligente:** Actualizado el controlador `contents.controller.ts` para soportar parámetros de búsqueda (`query params`). Ahora permite filtrar por título (regex), tipo de contenido (`video`, `pdf`, `texto`) y nivel de dificultad.
+
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- **Nueva Página de Catálogo (`/contenidos`):** Implementación de la vista principal de recursos educativos con diseño "SaaS Premium".
+- **Sistema de Filtrado:**
+    - Barra de búsqueda con "debouncing" para optimizar peticiones al backend.
+    - Filtros rápidos por tipo de recurso y nivel de dificultad integrados en una barra minimalista.
+- **Visualización de Contenidos:**
+    - Cuadrícula de tarjetas con micro-interacciones (hover states, elevación).
+    - Diferenciación visual por tipo mediante iconos y esquemas de color dinámicos.
+    - Skeletons de carga personalizados para una experiencia "zero-layout-shift".
+- **Integración de Navegación:** Vinculación directa con la vista de detalle de contenidos, cerrando el ciclo de exploración y consumo de material.
+
+## [2026-04-24] Integración de Azure Blob Storage y Refactorización de Subida
+**Carpeta: `cn_zona_b` (Backend API Content)**
+- **Almacenamiento en la Nube:** Instalación de dependencias `@azure/storage-blob` y `multer` para manejo `multipart/form-data`.
+- **Servicio Azure:** Creación de `lib/azure.ts` para conectar con el contenedor `videos` en Azure Storage.
+- **Controlador de Contenido:** El endpoint `/api/contents` ahora intercepta `req.file`, lo transfiere directamente a Azure mediante un *buffer*, y almacena en Mongo la URL pública resultante (`cdn_url`).
+
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- **Rediseño del Formulario de Carga:** Se eliminó el campo de URL de YouTube en `/subir/page.tsx`.
+- **UI Drag & Drop:** Implementada una caja de subida interactiva utilizando íconos de `lucide-react` para aceptar y previsualizar archivos locales.
+- **Petición con FormData:** Refactorización de `handleSubmit` para empacar todos los campos de texto junto con el archivo físico dentro de una instancia nativa `FormData`, asegurando compatibilidad con el nuevo backend.
+
+## [2026-04-26] Seguridad Estricta, Zod y Restablecimiento de Credenciales
+**Carpeta: `cn_zona_a` & `cn_zona_b` (Backend APIs)**
+- **Aduana de Datos (Zod):** Instalación de la librería `zod`. Implementación de middlewares `validate.middleware.ts` para interceptar datos corruptos o maliciosos antes de tocar los controladores.
+- **Esquemas Estrictos:** Creación de `auth.schemas.ts` y `content.schemas.ts` para aplicar reglas estrictas de tipo, tamaño y formato en correos, roles, títulos y descripciones de video.
+
+**Carpeta: `cn_zona_a` (Identidad y Seguridad)**
+- **Flujo "Forgot Password":** Nuevo endpoint `POST /forgot-password` que genera un código OTP de recuperación y lo envía por correo mediante Nodemailer utilizando la cuenta `pathly.education@gmail.com`.
+- **Flujo "Reset Password":** Nuevo endpoint `POST /reset-password` que valida el OTP, hashea la nueva contraseña y actualiza `password_changed_at`.
+- **Cierre de Sesiones Activas:** Al restablecer la contraseña de forma exitosa, el sistema localiza y revoca (`is_revoked = 1`) automáticamente todas las sesiones activas en `active_sessions` para eliminar accesos previos de posibles atacantes.
+- **API REST "Nivel Pro":** Refactorización limpia del enrutador de autenticación. `/send-verification-code` pasó a ser `/verify` (manteniendo alias).
+
+**Carpeta: `cd_gateway` (Gateway API)**
+- **Exposición Segura:** Actualizadas las reglas de proxy en `gateway.routes.ts` para enrutar los nuevos flujos de recuperación (`/forgot-password`, `/reset-password`) hacia Zona A.
+
+## [2026-04-28] Hardening de Seguridad, Auditoría Forense y Monitoreo de IP
+**Carpeta: `cn_zona_a` (Backend API)**
+- **Auditoría Avanzada (Caja Negra):** Implementación de la tabla `audit_trail`. Creada función `logAudit` para capturar estados previos (`old_values`) y posteriores (`new_values`) de cada cambio en la DB.
+- **Monitoreo de Sesiones (Hijacking):** El middleware de autenticación ahora es asíncrono y valida la consistencia de la IP. Si la IP de la petición no coincide con la que inició la sesión, se revoca el token automáticamente y se registra como `suspicious_access`.
+- **Revocación Masiva:** Nuevo endpoint `POST /revoke-sessions` para permitir al usuario invalidar todos sus accesos activos ante sospecha de compromiso.
+- **Trazabilidad Forense:** Modificado el endpoint `/me` para retornar la IP actual y la fecha de última conexión.
+
+**Carpeta: `cd_gateway` (Gateway API)**
+- **Proxy de Auditoría:** Habilitado el paso para las rutas administrativas `/users/audit-trail`, `/users/security-logs` y `/users/failed-attempts`.
+- **Rutas de Revocación:** Registrada la ruta de cierre masivo de sesiones.
+
+**Carpeta: `cn-frontend` (Frontend Next.js)**
+- **Dashboard de Seguridad Admin:** Nueva página premium en `/admin/seguridad` con visualización forense de la bitácora de auditoría (Caja Negra), intentos de intrusión y monitor de baneos.
+- **Control de Usuario en Perfil:**
+    - Integración de widgets informativos de IP y Último Acceso.
+    - Implementación del "Botón de Pánico" para cerrar todas las sesiones activas.
+- **Inteligencia en Login:** El sistema detecta si la sesión fue cerrada por "actividad sospechosa" mediante parámetros en la URL y muestra una advertencia de seguridad clara al usuario.
+- **SessionGuard:** Refuerzo del guardián de sesión para manejar las revocaciones forzadas por cambio de IP.

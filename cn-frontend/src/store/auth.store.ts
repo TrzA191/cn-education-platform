@@ -10,7 +10,10 @@ interface User {
 interface AuthState {
   token: string | null
   user: User | null
+  viewMode: string // 'default', 'student', 'teacher'
   setAuth: (token: string, user: User) => void
+  setUser: (user: User) => void
+  setViewMode: (mode: string) => void
   logout: () => void
 }
 
@@ -19,8 +22,11 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       token: null,
       user: null,
-      setAuth: (token, user) => set({ token, user }),
-      logout: () => set({ token: null, user: null }),
+      viewMode: 'default',
+      setAuth: (token, user) => set({ token, user, viewMode: 'default' }),
+      setUser: (user) => set({ user }),
+      setViewMode: (viewMode) => set({ viewMode }),
+      logout: () => set({ token: null, user: null, viewMode: 'default' }),
     }),
     { name: 'auth-storage' }
   )

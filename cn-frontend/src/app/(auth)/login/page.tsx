@@ -5,63 +5,146 @@ import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
 import CaptchaGate from '@/components/CaptchaGate'
+import { GraduationCap, ArrowRight, ShieldCheck, Mail } from 'lucide-react'
 import { useCaptchaRequired } from '@/hooks/useCaptchaRequired'
 
-type Tab = 'login' | 'register'
+type Tab  = 'login' | 'register' | 'recovery'
 type Role = 'student' | 'teacher'
 
+// Dominios de correo permitidos
+const ALLOWED_EMAIL_REGEX = /^[a-zA-Z0-9._%+\-]+@(gmail\.com|hotmail\.com|outlook\.com|yahoo\.com|icloud\.com|unach\.mx|uvc\.edu\.mx|live\.com|me\.com)$/i
+
+// Validadores de contraseña
+const passwordRules = [
+  { label: 'Mínimo 8 caracteres', test: (p: string) => p.length >= 8 },
+  { label: 'Al menos un número',  test: (p: string) => /\d/.test(p) },
+  { label: 'Al menos una letra',  test: (p: string) => /[a-zA-Z]/.test(p) },
+]
+
 export default function LoginPage() {
-  // ==========================================
-  // 1. ZONA DE HOOKS (PROHIBIDO PONER 'IF' O 'RETURN' ARRIBA DE ESTO)
-  // ==========================================
-  const router = useRouter()
+  const router      = useRouter()
   const { setAuth } = useAuthStore()
 
-  // Hooks del Captcha
-  const { required: captchaRequired } = useCaptchaRequired()
-  const [captchaVerified, setCaptchaVerified] = useState(false)
-
-  // Hooks del Formulario
-  const [tab, setTab] = useState<Tab>('login')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [tab,              setTab]              = useState<Tab>('login')
+  const [loading,          setLoading]          = useState(false)
+  const [error,            setError]            = useState('')
+  const [successMsg,       setSuccessMsg]       = useState('')
+  const [captchaToken,    setCaptchaToken]      = useState<string | null>(null)
+  const [forceShowCaptcha, setForceShowCaptcha] = useState(false)
 
   const [loginData, setLoginData] = useState({ email: '', password: '' })
   const [registerData, setRegisterData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    role: 'student' as Role,
+    username: '', email: '', password: '', confirmPassword: '', role: 'student' as Role,
   })
 
-  // ==========================================
-  // 2. MANEJADORES DE EVENTOS
-  // ==========================================
+  const [registerStep, setRegisterStep] = useState<1 | 2>(1)
+  const [verificationCode, setVerificationCode] = useState('')
+
+  const [recoveryStep, setRecoveryStep] = useState<1 | 2>(1)
+  const [recoveryData, setRecoveryData] = useState({ email: '', code: '', newPassword: '', confirmPassword: '' })
+
+  // Errores de validación del formulario de registro
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+
+  const { required: captchaRequired, loading: captchaLoading, recheck } =
+    useCaptchaRequired(tab === 'login' ? loginData.email : undefined)
+
+  if (tab === 'login' && (captchaRequired || forceShowCaptcha) && !captchaToken) {
+    return (
+      <CaptchaGate onVerified={(token) => {
+        setCaptchaToken(token)
+        setForceShowCaptcha(false)
+      }} />
+    )
+  }
+
+  // ── Validación del registro ──────────────────────────────────────────────────
+  const validateRegister = (): boolean => {
+    const errors: Record<string, string> = {}
+
+    if (!ALLOWED_EMAIL_REGEX.test(registerData.email)) {
+      errors.email = 'Usa un correo válido: @gmail.com, @hotmail.com, @unach.mx, etc.'
+    }
+
+    const failedRules = passwordRules.filter(r => !r.test(registerData.password))
+    if (failedRules.length > 0) {
+      errors.password = 'La contraseña no cumple los requisitos.'
+    }
+
+    if (registerData.password !== registerData.confirmPassword) {
+      errors.confirmPassword = 'Las contraseñas no coinciden.'
+    }
+
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setSuccessMsg('')
     setLoading(true)
     try {
-      const res = await api.post('/api/auth/login', loginData)
+      const headers: Record<string, string> = {}
+      if (captchaToken) headers['x-recaptcha-token'] = captchaToken
+
+      const res = await api.post('/api/auth/login', loginData, { headers })
       const { token, user } = res.data
       setAuth(token, user)
       router.push('/dashboard')
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Error al iniciar sesión')
+      const data = err.response?.data
+      if (data?.requiresCaptcha) {
+        setCaptchaToken(null)
+        setForceShowCaptcha(true)
+        setError('')
+        return
+      }
+      if (data?.blocked) {
+        setError(data?.error || 'Cuenta bloqueada. Intenta más tarde.')
+        return
+      }
+      setError(data?.error || 'Error al iniciar sesión')
+      setCaptchaToken(null)
+      recheck()
     } finally {
       setLoading(false)
     }
   }
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleSendCode = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    if (!validateRegister()) return
+
+    setLoading(true)
+    try {
+      await api.post('/api/auth/send-verification-code', {
+        email: registerData.email,
+      })
+      setRegisterStep(2)
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Error al enviar código')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleVerifyAndRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      await api.post('/api/auth/register', registerData)
-      const res = await api.post('/api/auth/login', {
-        email: registerData.email,
+      await api.post('/api/auth/register', {
+        username: registerData.username,
+        email   : registerData.email,
         password: registerData.password,
+        role    : registerData.role,
+        verificationCode: verificationCode,
+      })
+      const res = await api.post('/api/auth/login', {
+        email: registerData.email, password: registerData.password,
       })
       const { token, user } = res.data
       setAuth(token, user)
@@ -73,137 +156,403 @@ export default function LoginPage() {
     }
   }
 
-  // ==========================================
-  // 3. RENDERIZADO CONDICIONAL (SIEMPRE AL FINAL)
-  // ==========================================
-  
-  // La "Compuerta": Si requiere captcha y no está verificado, bloqueamos la vista.
-  // Como esto ya está debajo de todos los hooks, React es feliz.
-  if (captchaRequired && !captchaVerified) {
-    return <CaptchaGate onVerified={() => setCaptchaVerified(true)} />
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSuccessMsg('')
+    setLoading(true)
+    try {
+      await api.post('/api/auth/forgot-password', { email: recoveryData.email })
+      setRecoveryStep(2)
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Error al solicitar recuperación')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // El Formulario Normal
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setSuccessMsg('')
+    if (recoveryData.newPassword !== recoveryData.confirmPassword) {
+      setError('Las contraseñas no coinciden')
+      return
+    }
+    const failedRules = passwordRules.filter(r => !r.test(recoveryData.newPassword))
+    if (failedRules.length > 0) {
+      setError('La contraseña no cumple los requisitos')
+      return
+    }
+    setLoading(true)
+    try {
+      await api.post('/api/auth/reset-password', {
+        email: recoveryData.email,
+        code: recoveryData.code,
+        newPassword: recoveryData.newPassword
+      })
+      setTab('login')
+      setRecoveryStep(1)
+      setRecoveryData({ email: '', code: '', newPassword: '', confirmPassword: '' })
+      setSuccessMsg('Contraseña actualizada con éxito. Por favor, inicia sesión.')
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Error al restablecer contraseña')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const pwd = registerData.password
+
   return (
-    <main className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <main className="min-h-screen bg-[#f5f7fb] dark:bg-slate-950 transition-colors duration-300 flex items-center justify-center p-4">
+      <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl mb-4 shadow-lg">
-            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-500 rounded-2xl mb-4 shadow-lg shadow-indigo-500/30">
+            <GraduationCap className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Pathly</h1>
-          <p className="text-gray-500 text-sm mt-1">Traza tu camino, aprende a tu ritmo</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Pathly</h1>
+          <p className="text-slate-600 dark:text-slate-300 font-medium mt-1">Trace your path, learn at your pace</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
-            <button
-              onClick={() => { setTab('login'); setError('') }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-                tab === 'login' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Iniciar sesión
-            </button>
-            <button
-              onClick={() => { setTab('register'); setError('') }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
-                tab === 'register' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Registrarse
-            </button>
-          </div>
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 p-8">
+          {tab !== 'recovery' && (
+            <div className="flex bg-slate-100 dark:bg-slate-800/50 rounded-xl p-1.5 mb-8">
+              <button
+                onClick={() => { setTab('login'); setError(''); setSuccessMsg(''); setCaptchaToken(null); setForceShowCaptcha(false); setRegisterStep(1); }}
+                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
+                  tab === 'login' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >Log in</button>
+              <button
+                onClick={() => { setTab('register'); setError(''); setSuccessMsg(''); setFieldErrors({}); setRegisterStep(1); }}
+                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-300 ${
+                  tab === 'register' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >Sign up</button>
             </div>
           )}
 
+          {successMsg && (
+            <div className="mb-4 p-3 bg-green-50 dark:bg-green-500/10 border border-green-100 dark:border-green-500/20 rounded-lg">
+              <p className="text-sm text-green-600 dark:text-green-400">{successMsg}</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-lg">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
+
+          {/* ── FORMULARIO LOGIN ── */}
           {tab === 'login' && (
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
-                <input
-                  type="email" required
-                  value={loginData.email}
-                  onChange={e => setLoginData({ ...loginData, email: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                  placeholder="tu@correo.com"
-                />
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Correo electrónico</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <Mail className="w-5 h-5 text-slate-400" />
+                  </div>
+                  <input
+                    type="email" required
+                    value={loginData.email}
+                    onChange={e => setLoginData({ ...loginData, email: e.target.value })}
+                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 placeholder-slate-400 dark:placeholder-slate-500 transition-all shadow-sm"
+                    placeholder="tu@correo.com"
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
-                <input
-                  type="password" required
-                  value={loginData.password}
-                  onChange={e => setLoginData({ ...loginData, password: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                  placeholder="••••••••"
-                />
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Contraseña</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                     <ShieldCheck className="w-5 h-5 text-slate-400" />
+                  </div>
+                  <input
+                    type="password" required
+                    value={loginData.password}
+                    onChange={e => setLoginData({ ...loginData, password: e.target.value })}
+                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 placeholder-slate-400 dark:placeholder-slate-500 transition-all shadow-sm"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div className="flex justify-end mt-2">
+                  <button type="button" onClick={() => { setTab('recovery'); setError(''); setSuccessMsg(''); }} className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                    ¿Olvidaste tu contraseña?
+                  </button>
+                </div>
               </div>
               <button
                 type="submit" disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-2.5 rounded-xl text-sm transition-colors"
+                className="w-full mt-2 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 disabled:from-indigo-300 disabled:to-indigo-300 text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-md shadow-indigo-500/30 hover:shadow-lg flex items-center justify-center gap-2"
               >
                 {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+                {!loading && <ArrowRight className="w-4 h-4" />}
               </button>
             </form>
           )}
 
-          {tab === 'register' && (
-            <form onSubmit={handleRegister} className="space-y-4">
+          {/* ── FORMULARIO REGISTRO ── */}
+          {tab === 'register' && registerStep === 1 && (
+            <form onSubmit={handleSendCode} className="space-y-4">
+
+              {/* Username */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de usuario</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre de usuario</label>
                 <input
                   type="text" required
                   value={registerData.username}
                   onChange={e => setRegisterData({ ...registerData, username: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400 dark:placeholder-slate-500 transition"
                   placeholder="usuario123"
                 />
               </div>
+
+              {/* Email con validación de dominio */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Correo electrónico</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Correo electrónico</label>
                 <input
                   type="email" required
                   value={registerData.email}
-                  onChange={e => setRegisterData({ ...registerData, email: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                  placeholder="tu@correo.com"
+                  onChange={e => {
+                    setRegisterData({ ...registerData, email: e.target.value })
+                    setFieldErrors(prev => ({ ...prev, email: '' }))
+                  }}
+                  className={`w-full px-4 py-2.5 rounded-xl border bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 placeholder-slate-400 dark:placeholder-slate-500 transition ${
+                    fieldErrors.email
+                      ? 'border-red-300 focus:ring-red-400 bg-red-50 dark:bg-red-500/10'
+                      : 'border-gray-200 dark:border-slate-700 focus:ring-indigo-500'
+                  }`}
+                  placeholder="tu@gmail.com / tu@unach.mx"
                 />
+                {fieldErrors.email && (
+                  <p className="text-xs text-red-500 mt-1">{fieldErrors.email}</p>
+                )}
               </div>
+
+              {/* Contraseña con indicadores */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contraseña</label>
                 <input
-                  type="password" required minLength={8}
+                  type="password" required
                   value={registerData.password}
-                  onChange={e => setRegisterData({ ...registerData, password: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                  onChange={e => {
+                    setRegisterData({ ...registerData, password: e.target.value })
+                    setFieldErrors(prev => ({ ...prev, password: '' }))
+                  }}
+                  className={`w-full px-4 py-2.5 rounded-xl border bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 placeholder-slate-400 dark:placeholder-slate-500 transition ${
+                    fieldErrors.password
+                      ? 'border-red-300 focus:ring-red-400 bg-red-50 dark:bg-red-500/10'
+                      : 'border-gray-200 dark:border-slate-700 focus:ring-indigo-500'
+                  }`}
                   placeholder="Mínimo 8 caracteres"
                 />
+                {/* Indicadores de requisitos */}
+                {pwd.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {passwordRules.map(rule => (
+                      <div key={rule.label} className="flex items-center gap-2">
+                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                          rule.test(pwd) ? 'bg-green-500' : 'bg-gray-200 dark:bg-slate-700'
+                        }`}>
+                          {rule.test(pwd) && (
+                            <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span className={`text-xs transition-colors ${
+                          rule.test(pwd) ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-slate-500'
+                        }`}>
+                          {rule.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* Confirmar contraseña */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirmar contraseña</label>
+                <input
+                  type="password" required
+                  value={registerData.confirmPassword}
+                  onChange={e => {
+                    setRegisterData({ ...registerData, confirmPassword: e.target.value })
+                    setFieldErrors(prev => ({ ...prev, confirmPassword: '' }))
+                  }}
+                  className={`w-full px-4 py-2.5 rounded-xl border bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 placeholder-slate-400 dark:placeholder-slate-500 transition ${
+                    fieldErrors.confirmPassword
+                      ? 'border-red-300 focus:ring-red-400 bg-red-50 dark:bg-red-500/10'
+                      : registerData.confirmPassword.length > 0 && registerData.confirmPassword === pwd
+                        ? 'border-green-400 dark:border-green-500 focus:ring-green-400'
+                        : 'border-gray-200 dark:border-slate-700 focus:ring-indigo-500'
+                  }`}
+                  placeholder="Repite tu contraseña"
+                />
+                {/* Indicador de coincidencia en tiempo real */}
+                {registerData.confirmPassword.length > 0 && (
+                  <p className={`text-xs mt-1 ${
+                    registerData.confirmPassword === pwd ? 'text-green-600' : 'text-red-500'
+                  }`}>
+                    {registerData.confirmPassword === pwd ? '✓ Las contraseñas coinciden' : 'Las contraseñas no coinciden'}
+                  </p>
+                )}
+                {fieldErrors.confirmPassword && (
+                  <p className="text-xs text-red-500 mt-1">{fieldErrors.confirmPassword}</p>
+                )}
+              </div>
+
+              {/* Rol */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rol</label>
                 <select
                   value={registerData.role}
                   onChange={e => setRegisterData({ ...registerData, role: e.target.value as Role })}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition bg-white"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
                 >
-                  <option value="student">Estudiante</option>
-                  <option value="teacher">Profesor</option>
+                  <option value="student" className="dark:bg-slate-900">Estudiante</option>
+                  <option value="teacher" className="dark:bg-slate-900">Profesor</option>
                 </select>
+              </div>
+
+              <button
+                type="submit" disabled={loading}
+                className="w-full mt-4 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 disabled:from-indigo-300 disabled:to-indigo-300 text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-md shadow-indigo-500/30 hover:shadow-lg flex items-center justify-center gap-2"
+              >
+                {loading ? 'Enviando código...' : 'Continuar paso 2'}
+                {!loading && <ArrowRight className="w-4 h-4" />}
+              </button>
+            </form>
+          )}
+
+          {tab === 'register' && registerStep === 2 && (
+            <form onSubmit={handleVerifyAndRegister} className="space-y-4">
+              <div className="text-center mb-6">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Enviamos un código de 6 dígitos a <span className="font-semibold text-gray-900 dark:text-white">{registerData.email}</span>.
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código de verificación</label>
+                <input
+                  type="text" required
+                  maxLength={6}
+                  value={verificationCode}
+                  onChange={e => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-center text-2xl tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 transition placeholder-slate-400 dark:placeholder-slate-500"
+                  placeholder="000000"
+                />
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setRegisterStep(1)}
+                  disabled={loading}
+                  className="w-1/3 bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold py-3 rounded-xl text-sm transition-colors border border-slate-200 dark:border-slate-700"
+                >
+                  Volver
+                </button>
+                <button
+                  type="submit" disabled={loading || verificationCode.length !== 6}
+                  className="w-2/3 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 disabled:from-indigo-300 disabled:to-indigo-300 text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-md shadow-indigo-500/30 hover:shadow-lg"
+                >
+                  {loading ? 'Verificando...' : 'Verificar e Ingresar'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ── FORMULARIO RECUPERACIÓN ── */}
+          {tab === 'recovery' && recoveryStep === 1 && (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="text-center mb-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Recuperar Contraseña</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Ingresa tu correo para recibir un código de acceso seguro.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Correo electrónico</label>
+                <input
+                  type="email" required
+                  value={recoveryData.email}
+                  onChange={e => setRecoveryData({ ...recoveryData, email: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400 dark:placeholder-slate-500"
+                  placeholder="tu@correo.com"
+                />
               </div>
               <button
                 type="submit" disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-2.5 rounded-xl text-sm transition-colors"
+                className="w-full mt-2 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-md shadow-indigo-500/30"
               >
-                {loading ? 'Creando cuenta...' : 'Crear cuenta'}
+                {loading ? 'Enviando...' : 'Enviar Código'}
               </button>
+            </form>
+          )}
+
+          {tab === 'recovery' && recoveryStep === 2 && (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="text-center mb-6">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Crear Nueva Contraseña</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Ingresa el código que enviamos a {recoveryData.email}.</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código de verificación</label>
+                <input
+                  type="text" required maxLength={6}
+                  value={recoveryData.code}
+                  onChange={e => setRecoveryData({ ...recoveryData, code: e.target.value.replace(/\D/g, '') })}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-center text-2xl tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400"
+                  placeholder="000000"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nueva Contraseña</label>
+                <input
+                  type="password" required
+                  value={recoveryData.newPassword}
+                  onChange={e => setRecoveryData({ ...recoveryData, newPassword: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400"
+                  placeholder="Mínimo 8 caracteres"
+                />
+                {recoveryData.newPassword.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {passwordRules.map(rule => (
+                      <div key={rule.label} className="flex items-center gap-2">
+                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+                          rule.test(recoveryData.newPassword) ? 'bg-green-500' : 'bg-gray-200 dark:bg-slate-700'
+                        }`}></div>
+                        <span className={`text-xs ${rule.test(recoveryData.newPassword) ? 'text-green-600' : 'text-gray-400'}`}>{rule.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirmar Contraseña</label>
+                <input
+                  type="password" required
+                  value={recoveryData.confirmPassword}
+                  onChange={e => setRecoveryData({ ...recoveryData, confirmPassword: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-transparent dark:bg-slate-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-400"
+                  placeholder="Repite tu contraseña"
+                />
+              </div>
+
+              <div className="flex gap-3 mt-4">
+                <button type="button" onClick={() => setRecoveryStep(1)} disabled={loading} className="w-1/3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold py-3 rounded-xl text-sm transition-colors border border-slate-200 dark:border-slate-700">
+                  Volver
+                </button>
+                <button type="submit" disabled={loading || recoveryData.code.length !== 6} className="w-2/3 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold py-3 rounded-xl text-sm transition-all shadow-md">
+                  {loading ? 'Restableciendo...' : 'Restablecer'}
+                </button>
+              </div>
             </form>
           )}
         </div>

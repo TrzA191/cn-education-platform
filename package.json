@@ -1,0 +1,8 @@
+{
+  "name": "pathly-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel --stream run dev"
+  }
+}

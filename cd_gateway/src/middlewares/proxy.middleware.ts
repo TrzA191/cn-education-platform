@@ -10,14 +10,18 @@ export const proxy = (baseUrl: string) => {
         method: req.method as Method,
         url,
         headers: {
-          'content-type':   req.headers['content-type'],
-          'authorization':  req.headers['authorization'],
-          'accept':         req.headers['accept'],
-          'x-internal-key': process.env.INTERNAL_API_KEY, // ← agrega esto
+          'content-type': req.headers['content-type'],
+          'authorization': req.headers['authorization'],
+          'accept': req.headers['accept'],
+          'x-forwarded-for': req.ip || req.headers['x-forwarded-for'],
+          'x-forwarded-user-agent': req.headers['user-agent'],
+          'x-captcha-verified': req.headers['x-captcha-verified'], // ← agregar
         },
-        data:           req.body,
-        params:         req.query,
+        data: req.headers['content-type']?.includes('multipart/form-data') ? req : req.body,
+        params: req.query,
         validateStatus: () => true,
+        maxBodyLength: Infinity, // Importante para subir videos pesados
+        maxContentLength: Infinity,
       }
 
       const response = await axios(config)

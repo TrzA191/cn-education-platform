@@ -1,0 +1,5 @@
+packages:
+  - 'cn-frontend'
+  - 'cd_gateway'
+  - 'cn_zona_a'
+  - 'cn_zona_b'
